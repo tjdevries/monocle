@@ -1,0 +1,13 @@
+(version 2.18)
+
+(build
+ (run dune build -p %{pkg-self:name} -j %{jobs} @install))
+
+(depends ocaml dune)
+
+(source
+ (fetch
+  (url
+   https://github.com/0install/0install/releases/download/v2.18/0install-2.18.tbz)
+  (checksum
+   sha256=648c4b318c1a26dfcb44065c226ab8ca723795924ad80a3bf39ae1ce0e9920c3)))

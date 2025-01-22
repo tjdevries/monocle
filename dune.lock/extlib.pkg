@@ -1,0 +1,12 @@
+(version 1.8.0)
+
+(build
+ (run dune build -p %{pkg-self:name} -j %{jobs}))
+
+(depends dune ocaml cppo)
+
+(source
+ (fetch
+  (url
+   https://github.com/ygrek/ocaml-extlib/releases/download/1.8.0/extlib-1.8.0.tar.gz)
+  (checksum md5=43fb3bf2989671af1769147b1171d080)))

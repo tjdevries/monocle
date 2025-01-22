@@ -1,0 +1,33 @@
+(version 0.2.0)
+
+(build
+ (progn
+  (when
+   %{pkg-self:dev}
+   (run dune subst))
+  (run dune build -p %{pkg-self:name} -j %{jobs} @install)))
+
+(depends
+ dune
+ ocaml
+ logs
+ eio-ssl
+ magic-mime
+ ssl
+ uri
+ ipaddr
+ httpun-eio
+ gluten-eio
+ h2-eio
+ httpun-ws
+ pecu
+ prettym
+ unstrctrd
+ eio_main)
+
+(source
+ (fetch
+  (url
+   https://github.com/anmonteiro/piaf/releases/download/0.2.0/piaf-0.2.0.tbz)
+  (checksum
+   sha256=07fa9009a52faeaae6d86116e75007f5279b185c7bc7c95aab9455f2107370fb)))

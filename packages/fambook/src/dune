@@ -1,0 +1,4 @@
+(library
+  (name fambook)
+  (package fambook)
+  (libraries caqti caqti-eio))

@@ -1,0 +1,11 @@
+(version 0.10)
+
+(build
+ (run dune build -p %{pkg-self:name} -j %{jobs}))
+
+(depends ocaml dune extlib)
+
+(source
+ (fetch
+  (url https://gitlab.com/irill/cudf/-/archive/v0.10/cudf-v0.10.tar.gz)
+  (checksum md5=ed8fea314d0c6dc0d8811ccf860c53dd)))

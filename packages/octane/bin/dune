@@ -1,0 +1,31 @@
+(executable
+ (public_name oql_parse)
+ (package octane)
+ (name oql_parse)
+ (modules oql_parse)
+ (libraries oql octane fmt bos core))
+
+(executable
+ (public_name oql_lex)
+ (package octane)
+ (name oql_lex)
+ (modules oql_lex)
+ (libraries oql octane fmt bos core))
+
+(executable
+ (name oql_exec)
+ (public_name oql_exec)
+ (package oql)
+ (modules oql_exec)
+ (libraries oql octane fmt bos DBCaml DBCamlSqlite riot serde core)
+ (preprocess
+  (pps serde_derive ppx_octane)))
+
+(executable
+ (name pp_query)
+ (public_name pp_query)
+ (package ppx_octane)
+ (modules pp_query)
+ (libraries ppxlib ppx_octane)
+ (preprocess
+  (pps ppx_octane)))

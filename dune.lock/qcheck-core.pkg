@@ -1,0 +1,11 @@
+(version 0.23)
+
+(build
+ (run dune build -p %{pkg-self:name} -j %{jobs}))
+
+(depends dune base-unix ocaml)
+
+(source
+ (fetch
+  (url https://github.com/c-cube/qcheck/archive/v0.23.tar.gz)
+  (checksum md5=25be98dd0e0e0b3f34cb4c9d72507563)))

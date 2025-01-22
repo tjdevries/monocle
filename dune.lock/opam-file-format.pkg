@@ -1,0 +1,28 @@
+(version 2.1.6)
+
+(install
+ (when
+  (not %{pkg:dune:installed})
+  (run %{make} install PREFIX=%{prefix})))
+
+(build
+ (progn
+  (when
+   (not %{pkg:dune:installed})
+   (run
+    %{make}
+    (when
+     (not %{pkg:ocaml:native})
+     byte)
+    (when %{pkg:ocaml:native} all)))
+  (when
+   %{pkg:dune:installed}
+   (run dune build -p %{pkg-self:name} -j %{jobs} @install))))
+
+(depends ocaml dune)
+
+(source
+ (fetch
+  (url
+   https://github.com/ocaml/opam-file-format/archive/refs/tags/2.1.6.tar.gz)
+  (checksum md5=706ce5fc3e77db746a4c8b11d79cefef)))

@@ -1,0 +1,5 @@
+(executable
+ (package blog)
+ (public_name blog)
+ (name main)
+ (libraries drive blog html_of_jsx))

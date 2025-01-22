@@ -1,0 +1,17 @@
+(version 6.0.0)
+
+(build
+ (progn
+  (when
+   %{pkg-self:dev}
+   (run dune subst))
+  (run dune build -p %{pkg-self:name} -j %{jobs} @install)))
+
+(depends dune ocaml)
+
+(source
+ (fetch
+  (url
+   https://github.com/mirage/ocaml-cohttp/releases/download/v6.0.0/cohttp-6.0.0.tbz)
+  (checksum
+   sha256=54cc34af128b342f4ae608a669650d66661ffdd503250e4de93a1a5ef1ef22a9)))

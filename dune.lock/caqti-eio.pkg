@@ -1,0 +1,13 @@
+(version 2.1.2)
+
+(build
+ (run dune build -p %{pkg-self:name} -j %{jobs}))
+
+(depends caqti dune eio logs ocaml)
+
+(source
+ (fetch
+  (url
+   https://github.com/paurkedal/ocaml-caqti/releases/download/v2.1.2/caqti-v2.1.2.tbz)
+  (checksum
+   sha256=ba4dfd5ff94376b5e003f682410b7b3b392c0bbaa0253679fe7671c2e07e895b)))

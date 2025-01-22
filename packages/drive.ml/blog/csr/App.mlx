@@ -1,0 +1,35 @@
+open React
+
+let window_path : unit -> string =
+  [%mel.raw "function() { return window.location.pathname; }"]
+;;
+
+type message =
+  | TwitchChatW of bool
+  | ThePrimeagenCantRead
+  | Etc
+
+module App = struct
+  let[@react.component] make () =
+    let message = ThePrimeagenCantRead in
+    let initialCount =
+      match message with
+      | TwitchChatW true -> 420
+      | TwitchChatW false -> 69
+      | ThePrimeagenCantRead -> 0
+      | Etc -> 1
+    in
+    let count, setCount = useState (fun _ -> initialCount) in
+    <div>
+      <button onClick=(fun _ -> setCount (fun count -> count + 1))>
+        (string "Plus One!!! Hello World")
+      </button>
+      <button onClick=(fun _ -> setCount (fun count -> count - 1))>
+        (string "Minus One!")
+      </button>
+      <div>(string (Format.sprintf "Count: %d" count))</div>
+    </div>
+  ;;
+end
+
+let default = App.make

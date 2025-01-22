@@ -1,0 +1,11 @@
+(executable
+ (name main)
+ (package fambook)
+ (public_name famexec)
+ (libraries
+  eio
+  eio_main
+  caqti
+  caqti-eio.unix
+  caqti-driver-postgresql
+  fambook))

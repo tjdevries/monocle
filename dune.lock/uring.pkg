@@ -1,0 +1,17 @@
+(version 0.9)
+
+(build
+ (progn
+  (when
+   %{pkg-self:dev}
+   (run dune subst))
+  (run dune build -p %{pkg-self:name} -j %{jobs} @install)))
+
+(depends dune cstruct ocaml dune-configurator fmt optint)
+
+(source
+ (fetch
+  (url
+   https://github.com/ocaml-multicore/ocaml-uring/releases/download/v0.9/uring-0.9.tbz)
+  (checksum
+   sha256=797588c5f2fd52c28a7f8b1a9c18ca7ebe8e7787cf0dcb559e453ec232175b43)))

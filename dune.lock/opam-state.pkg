@@ -1,0 +1,13 @@
+(version 2.2.1)
+
+(build
+ (progn
+  (run ./configure --disable-checks --prefix %{prefix})
+  (run dune build -p %{pkg-self:name} -j %{jobs})))
+
+(depends ocaml opam-repository re spdx_licenses dune)
+
+(source
+ (fetch
+  (url https://github.com/ocaml/opam/archive/refs/tags/2.2.1.tar.gz)
+  (checksum md5=d9b85326877d02ffee49caee2384f170)))

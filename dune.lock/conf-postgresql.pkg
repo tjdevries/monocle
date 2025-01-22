@@ -1,0 +1,8 @@
+(version 2)
+
+(build
+ (run pkg-config libpq))
+
+(depends conf-pkg-config)
+
+(depexts libpq-dev)

@@ -1,0 +1,3 @@
+(library
+ (name blog)
+ (libraries blog.ssr))

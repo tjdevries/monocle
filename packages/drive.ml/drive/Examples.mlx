@@ -1,0 +1,57 @@
+open JSX
+
+let page name =
+  let default_script ?(retry_interval_ms = 500) ?(max_retry_ms = 5000)
+      ?(route = "/reload") () =
+    Printf.sprintf
+      {js|
+var socketUrl = "http://" + location.host + "%s"
+var s = new WebSocket(socketUrl);
+
+s.onopen = function(even) {
+  console.log("WebSocket connection open.");
+};
+
+s.onclose = function(even) {
+  console.log("WebSocket connection closed.");
+  const innerMs = %i;
+  const maxMs = %i;
+  const maxAttempts = Math.round(maxMs / innerMs);
+  let attempts = 0;
+  function reload() {
+    attempts++;
+    if(attempts > maxAttempts) {
+      console.error("Could not reconnect to dev server.");
+      return;
+    }
+
+    s2 = new WebSocket(socketUrl);
+
+    s2.onerror = function(event) {
+      setTimeout(reload, innerMs);
+    };
+
+    s2.onopen = function(event) {
+      location.reload();
+    };
+  };
+  reload();
+};
+
+s.onerror = function(event) {
+  console.error("WebSocket error observed:", event);
+};
+|js}
+      route retry_interval_ms max_retry_ms
+  in
+
+  let _ = default_script in
+
+  JSX.render
+  @@ <html>
+       <head>
+         <title>"This is a title - for sure!"</title>
+         (* <script>(JSX.unsafe @@ default_script ())</script> *)
+       </head>
+       <body><h1>(string @@ "Hello: RELOAD " ^ name)</h1></body>
+     </html>

@@ -1,0 +1,19 @@
+(library
+ (name drive)
+ (public_name drive)
+ (libraries
+  core
+  fmt
+  ;; EIO
+  logs.fmt
+  logs.threaded
+  fmt.tty
+  eio_main
+  cohttp-eio
+  httpun
+  httpun-eio
+  piaf
+  ;; mlx
+  html_of_jsx)
+ (preprocess
+  (pps html_of_jsx.ppx)))

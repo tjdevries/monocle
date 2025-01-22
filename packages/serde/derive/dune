@@ -1,0 +1,13 @@
+(library
+ (public_name serde_derive)
+ (kind ppx_rewriter)
+ (libraries compiler-libs ppxlib serde)
+ (preprocess
+  (pps ppxlib.metaquot)))
+
+(cram
+ (package serde_derive)
+ (deps
+  (package serde)
+  (package serde_derive)
+  (package serde_json)))

@@ -1,0 +1,27 @@
+(version 3.14.0)
+
+(build
+ (progn
+  (when
+   %{pkg-self:dev}
+   (run dune subst))
+  (run dune build -p %{pkg-self:name} -j %{jobs} @install)))
+
+(depends
+ dune
+ ocaml
+ ocamlfind
+ dune-build-info
+ menhir
+ merlin-extend
+ fix
+ ppx_derivers
+ cppo
+ ppxlib)
+
+(source
+ (fetch
+  (url
+   https://github.com/reasonml/reason/releases/download/3.14.0/reason-3.14.0.tbz)
+  (checksum
+   sha256=1d09ba24a0594745ab6b38b4d5f81ead8565b73cb69ad46af1c2c26f8d324f00)))

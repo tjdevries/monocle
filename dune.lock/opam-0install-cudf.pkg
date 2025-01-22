@@ -1,0 +1,12 @@
+(version 0.5.0)
+
+(build
+ (run dune build -p %{pkg-self:name} -j %{jobs}))
+
+(depends dune cudf ocaml 0install-solver)
+
+(source
+ (fetch
+  (url
+   https://github.com/ocaml-opam/opam-0install-cudf/releases/download/v0.5.0/opam-0install-cudf-0.5.0.tar.gz)
+  (checksum md5=75419722aa839f518a25cae1b3c6efd4)))

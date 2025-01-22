@@ -1,0 +1,31 @@
+(version 2.0.0)
+
+(build
+ (progn
+  (when
+   %{pkg-self:dev}
+   (run dune subst))
+  (run dune build -p %{pkg-self:name} -j %{jobs} @install)))
+
+(depends
+ ocaml
+ reason
+ dune
+ opam-client
+ mccs
+ angstrom
+ fmt
+ bos
+ lwt_ppx
+ ppx_deriving_yojson
+ ppx_expect
+ ppx_inline_test
+ ppx_let
+ ppx_sexp_conv)
+
+(source
+ (fetch
+  (url
+   https://github.com/jchavarri/opam-check-npm-deps/releases/download/2.0.0/opam-check-npm-deps-2.0.0.tbz)
+  (checksum
+   sha256=7b7e90c13fd933516d2b72fbc0484481a765f51134d41bfa277712ffdc16daa2)))
