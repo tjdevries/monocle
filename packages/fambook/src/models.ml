@@ -64,4 +64,14 @@ module Chat = struct
     in
     Database.iter db query username ~f
   ;;
+
+  let user_messages db ~username =
+    let query =
+      (string ->* t3 int string string)
+      @@ "SELECT id, username, message FROM chats WHERE username = $1"
+    in
+    Database.collect db query username
+    |> Result.map (fun result ->
+      List.map (fun (_, username, message) -> { username; message }) result)
+  ;;
 end

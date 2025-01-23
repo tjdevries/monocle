@@ -1,0 +1,34 @@
+open JSX
+
+type t =
+  { user : string
+  ; chats : string list
+  }
+
+let render_chats chats =
+  let messages = List.map (fun msg -> <div>(string msg)</div>) chats.chats in
+  list messages
+;;
+
+let page chats =
+  let children =
+    [ <input id="message" name="message" type_="text" placeholder="Enter chat message" />
+    ; <button type_="submit">"Send"</button>
+    ]
+  in
+  let node =
+    JSX.node
+      "form"
+      [ "hx-post", `String (Format.sprintf "/chats/%s" chats.user)
+      ; "hx-target", `String "#chats"
+      ; "hx-swap", `String "innerHTML"
+      ; "hx-on::after-request", `String "if(event.detail.successful) this.reset()"
+      ]
+      children
+  in
+  <div class_="Hello">
+    <h1>(string @@ "Hello World! Chat Messages for " ^ chats.user)</h1>
+    <div>node</div>
+    <div id="chats">(render_chats chats)</div>
+  </div>
+;;

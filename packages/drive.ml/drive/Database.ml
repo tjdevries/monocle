@@ -23,3 +23,7 @@ let exec (t : pool) query params =
 let iter (t : pool) query params ~f =
   Caqti_eio.Pool.use (fun (module DB : T) -> DB.iter_s query f params) t
 ;;
+
+let collect (t : pool) query params =
+  Caqti_eio.Pool.use (fun (module DB : T) -> DB.collect_list query params) t
+;;

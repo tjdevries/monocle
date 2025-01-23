@@ -50,6 +50,9 @@ s.onerror = function(event) {
   @@ <html>
        <head>
          <title>"This is a title - for sure!"</title>
+         <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.js"
+                 integrity="sha384-oeUn82QNXPuVkGCkcrInrS1twIxKhkZiFfr2TdiuObZ3n3yIeMiqcRzkIcguaof1"
+                 crossorigin="anonymous" />
          (* <script>(JSX.unsafe @@ default_script ())</script> *)
        </head>
        <body><h1>(string @@ "Hello: " ^ name)</h1></body>

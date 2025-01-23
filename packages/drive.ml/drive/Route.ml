@@ -6,7 +6,8 @@ type env = Eio_unix.Stdenv.base
 
 type context =
   { env : env
-  ; db : Database.t option
+  ; sw : Eio.Switch.t
+  ; db : Database.pool
   }
 
 module type T = sig
@@ -14,7 +15,7 @@ module type T = sig
 
   val href : t -> string
   val parse : Request.t -> t option
-  val handle : ctx:context -> Request.t -> t -> (Response.t, Piaf.Error.common) result
+  val handle : ctx:context -> Request.t -> t -> (Response.t, 'a) result
 
   (* Could use this to cache all static routes
      val is_static_route : bool *)
@@ -29,14 +30,15 @@ end
 (*   let routes : (module ROUTE) list = [ (module UserRoute) ] in *)
 (*   Drive.run [ user ] *)
 
-let to_handler env (routes : (module T) list) =
+let to_handler ~sw ~env ~db (routes : (module T) list) =
   let handler (request : Request.t) =
-    let ctx = { env; db = None } in
     List.find_map
       ~f:(fun (module Route : T) ->
-        Route.parse request |> Option.map ~f:(Route.handle ~ctx request))
+        Route.parse request
+        |> Option.map ~f:(fun t ->
+          let ctx = { env; sw; db } in
+          Route.handle ~ctx request t))
       routes
-    |> Option.value_exn
   in
   handler
 ;;
