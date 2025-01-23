@@ -1,6 +1,0 @@
-let page =
-  <div class_="Hello">
-    <h1>"Hello World!!! SERVER SIDE RENDERING"</h1>
-    <button onclick="(function() { console.log('hi'); })()">"Click me!"</button>
-  </div>
-;;

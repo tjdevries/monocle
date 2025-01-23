@@ -4,3 +4,7 @@ margin = 100
 doc-comments-padding = 100
 exp-grouping = preserve
 break-string-literals = never
+
+module-item-spacing = preserve
+exp-grouping = preserve
+sequence-blank-line = preserve

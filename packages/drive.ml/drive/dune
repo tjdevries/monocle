@@ -9,6 +9,8 @@
   logs.threaded
   fmt.tty
   eio_main
+  caqti
+  caqti-eio.unix
   cohttp-eio
   httpun
   httpun-eio

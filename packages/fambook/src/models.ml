@@ -1,3 +1,5 @@
+open Drive
+
 module User = struct
   type t =
     { id : int
@@ -8,6 +10,27 @@ module User = struct
   let create ~id ~name ~email = { id; name; email }
 end
 
+(*
+   this is what i want to do:
+
+module Chat = struct
+  type t = { username : string; message: string }
+  [@@deriving table]
+
+  (* ... generated ... *)
+  let drop pool = ...
+  let create pool = ...
+
+  module Labels = struct
+    let insert pool ~username ~messages = ...
+  end
+
+  module Record = struct
+    let insert pool (record : t) = ...
+  end
+end
+*)
+
 module Chat = struct
   open Caqti_request.Infix
   open Caqti_type.Std
@@ -17,14 +40,14 @@ module Chat = struct
     ; message : string
     }
 
-  let drop db = Database.exec db ((unit ->. unit) "DROP TABLE IF EXISTS chats") ()
+  let drop pool = Database.exec pool ((unit ->. unit) "DROP TABLE IF EXISTS chats") ()
 
-  let create db =
+  let create pool =
     let query =
       (unit ->. unit)
       @@ "CREATE TABLE IF NOT EXISTS chats (id serial PRIMARY KEY, username TEXT NOT NULL, message TEXT NOT NULL)"
     in
-    Database.exec db query ()
+    Database.exec pool query ()
   ;;
 
   let insert db ~username ~message =

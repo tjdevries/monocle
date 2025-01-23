@@ -1,0 +1,10 @@
+let page =
+  <div class_="Hello">
+    <h1>"Hello World!!! SERVER SIDE RENDERING"</h1>
+    <button onclick="(function() { console.log('hi'); })()">"Click me!"</button>
+    <form hx_post="/chat" hx_target="#chats">
+      <input type_="text" placeholder="Enter chat message" /> <button type_="submit">"Send"</button>
+    </form>
+    <div id="chats" />
+  </div>
+;;

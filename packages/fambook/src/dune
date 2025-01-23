@@ -1,4 +1,4 @@
 (library
-  (name fambook)
-  (package fambook)
-  (libraries caqti caqti-eio))
+ (name fambook)
+ (package fambook)
+ (libraries caqti caqti-eio fambook.ssr drive))

@@ -8,4 +8,6 @@
   caqti
   caqti-eio.unix
   caqti-driver-postgresql
+  ;; Our Libraries
+  drive
   fambook))

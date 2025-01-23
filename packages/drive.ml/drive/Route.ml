@@ -3,13 +3,17 @@ open Import
 (* let user%route = "/user/user_id:UserID/:string" *)
 
 type env = Eio_unix.Stdenv.base
-type context = { env : env }
+
+type context =
+  { env : env
+  ; db : Database.t option
+  }
 
 module type T = sig
   type t
 
   val href : t -> string
-  val parse : string -> t option
+  val parse : Request.t -> t option
   val handle : ctx:context -> Request.t -> t -> (Response.t, Piaf.Error.common) result
 
   (* Could use this to cache all static routes
@@ -27,14 +31,12 @@ end
 
 let to_handler env (routes : (module T) list) =
   let handler (request : Request.t) =
-    let ctx = { env } in
+    let ctx = { env; db = None } in
     List.find_map
       ~f:(fun (module Route : T) ->
-        let path = request.target in
-        Route.parse path |> Option.map ~f:(Route.handle ~ctx request))
+        Route.parse request |> Option.map ~f:(Route.handle ~ctx request))
       routes
     |> Option.value_exn
   in
   handler
 ;;
-

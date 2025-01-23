@@ -10,7 +10,7 @@ open Logger.Make (struct
 module User = struct
   type t =
     { id : int [@primary_key { autoincrement = true }]
-    ; name : string
+    ; username : string
     ; middle_name : string option
     }
   [@@deriving table { name = "users" }]
