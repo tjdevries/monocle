@@ -1,6 +1,6 @@
 Pretty print the file
 
-  $ pp_query ./lib/table.ml > ./lib/table-generated.ml
+  $ pp_query_dbcaml ./lib/table.ml > ./lib/table-generated.ml
   $ ocamlformat ./lib/table-generated.ml
   module User = struct
     type t =
@@ -76,7 +76,8 @@ Pretty print the file
         let ( let* ) = Stdlib.Result.bind in
         let _ = ( let* ) in
         let open Serde.Ser in
-        fun t ctx ->
+        fun t ->
+          fun ctx ->
           record ctx "t" 3 (fun ctx ->
             let* () = field ctx "id" (int t.id) in
             let* () = field ctx "name" (string t.name) in
@@ -95,7 +96,7 @@ Pretty print the file
           let ( let* ) = Stdlib.Result.bind in
           let _ = ( let* ) in
           let open Serde.Ser in
-          fun t ctx -> (s (list (s serialize_t))) t ctx
+          fun t -> fun ctx -> (s (list (s serialize_t))) t ctx
         ;;
   
         let _ = serialize_row
@@ -140,7 +141,7 @@ Pretty print the file
             let ( let* ) = Stdlib.Result.bind in
             let _ = ( let* ) in
             let open Serde.Ser in
-            fun t ctx -> int t ctx
+            fun t -> fun ctx -> int t ctx
           ;;
   
           let _ = serialize_id
@@ -166,7 +167,7 @@ Pretty print the file
             let ( let* ) = Stdlib.Result.bind in
             let _ = ( let* ) in
             let open Serde.Ser in
-            fun t ctx -> string t ctx
+            fun t -> fun ctx -> string t ctx
           ;;
   
           let _ = serialize_name
@@ -192,7 +193,7 @@ Pretty print the file
             let ( let* ) = Stdlib.Result.bind in
             let _ = ( let* ) in
             let open Serde.Ser in
-            fun t ctx -> int t ctx
+            fun t -> fun ctx -> int t ctx
           ;;
   
           let _ = serialize_age
@@ -259,7 +260,8 @@ Pretty print the file
         let ( let* ) = Stdlib.Result.bind in
         let _ = ( let* ) in
         let open Serde.Ser in
-        fun t ctx ->
+        fun t ->
+          fun ctx ->
           record ctx "t" 2 (fun ctx ->
             let* () = field ctx "id" ((s User.Fields.serialize_id) t.id) in
             let* () = field ctx "name" ((s User.Fields.serialize_name) t.name) in
@@ -339,7 +341,7 @@ Pretty print the file
           let ( let* ) = Stdlib.Result.bind in
           let _ = ( let* ) in
           let open Serde.Ser in
-          fun t ctx -> (s (list (s serialize_t))) t ctx
+          fun t -> fun ctx -> (s (list (s serialize_t))) t ctx
         ;;
   
         let _ = serialize_query
@@ -368,7 +370,7 @@ Pretty print the file
   end [@warning "-32"]
 < language: ocaml
 
-  $ pp_query ./lib/where_id.ml | ocamlformat --impl -
+  $ pp_query_dbcaml ./lib/where_id.ml | ocamlformat --impl -
   module User = struct
     type t = { id : int } [@@deriving table { name = "users" }]
   
@@ -422,7 +424,8 @@ Pretty print the file
         let ( let* ) = Stdlib.Result.bind in
         let _ = ( let* ) in
         let open Serde.Ser in
-        fun t ctx ->
+        fun t ->
+          fun ctx ->
           record ctx "t" 1 (fun ctx ->
             let* () = field ctx "id" (int t.id) in
             Ok ())
@@ -439,7 +442,7 @@ Pretty print the file
           let ( let* ) = Stdlib.Result.bind in
           let _ = ( let* ) in
           let open Serde.Ser in
-          fun t ctx -> (s (list (s serialize_t))) t ctx
+          fun t -> fun ctx -> (s (list (s serialize_t))) t ctx
         ;;
   
         let _ = serialize_row
@@ -480,7 +483,7 @@ Pretty print the file
             let ( let* ) = Stdlib.Result.bind in
             let _ = ( let* ) in
             let open Serde.Ser in
-            fun t ctx -> int t ctx
+            fun t -> fun ctx -> int t ctx
           ;;
   
           let _ = serialize_id
@@ -535,7 +538,8 @@ Pretty print the file
         let ( let* ) = Stdlib.Result.bind in
         let _ = ( let* ) in
         let open Serde.Ser in
-        fun t ctx ->
+        fun t ->
+          fun ctx ->
           record ctx "t" 2 (fun ctx ->
             let* () = field ctx "id" ((s User.Fields.serialize_id) t.id) in
             let* () = field ctx "name" ((s User.Fields.serialize_name) t.name) in
@@ -615,7 +619,7 @@ Pretty print the file
           let ( let* ) = Stdlib.Result.bind in
           let _ = ( let* ) in
           let open Serde.Ser in
-          fun t ctx -> (s (list (s serialize_t))) t ctx
+          fun t -> fun ctx -> (s (list (s serialize_t))) t ctx
         ;;
   
         let _ = serialize_query
@@ -645,7 +649,7 @@ Pretty print the file
   end [@warning "-32"]
 < language: ocaml
 
-  $ pp_query ./lib/where_positional.ml | ocamlformat --impl -
+  $ pp_query_dbcaml ./lib/where_positional.ml | ocamlformat --impl -
   module User = struct
     type t =
       { id : int
@@ -711,7 +715,8 @@ Pretty print the file
         let ( let* ) = Stdlib.Result.bind in
         let _ = ( let* ) in
         let open Serde.Ser in
-        fun t ctx ->
+        fun t ->
+          fun ctx ->
           record ctx "t" 2 (fun ctx ->
             let* () = field ctx "id" (int t.id) in
             let* () = field ctx "name" (string t.name) in
@@ -729,7 +734,7 @@ Pretty print the file
           let ( let* ) = Stdlib.Result.bind in
           let _ = ( let* ) in
           let open Serde.Ser in
-          fun t ctx -> (s (list (s serialize_t))) t ctx
+          fun t -> fun ctx -> (s (list (s serialize_t))) t ctx
         ;;
   
         let _ = serialize_row
@@ -772,7 +777,7 @@ Pretty print the file
             let ( let* ) = Stdlib.Result.bind in
             let _ = ( let* ) in
             let open Serde.Ser in
-            fun t ctx -> int t ctx
+            fun t -> fun ctx -> int t ctx
           ;;
   
           let _ = serialize_id
@@ -798,7 +803,7 @@ Pretty print the file
             let ( let* ) = Stdlib.Result.bind in
             let _ = ( let* ) in
             let open Serde.Ser in
-            fun t ctx -> string t ctx
+            fun t -> fun ctx -> string t ctx
           ;;
   
           let _ = serialize_name
@@ -855,7 +860,8 @@ Pretty print the file
         let ( let* ) = Stdlib.Result.bind in
         let _ = ( let* ) in
         let open Serde.Ser in
-        fun t ctx ->
+        fun t ->
+          fun ctx ->
           record ctx "t" 1 (fun ctx ->
             let* () = field ctx "name" ((s User.Fields.serialize_name) t.name) in
             Ok ())
@@ -926,7 +932,7 @@ Pretty print the file
           let ( let* ) = Stdlib.Result.bind in
           let _ = ( let* ) in
           let open Serde.Ser in
-          fun t ctx -> (s (list (s serialize_t))) t ctx
+          fun t -> fun ctx -> (s (list (s serialize_t))) t ctx
         ;;
   
         let _ = serialize_query
@@ -952,7 +958,7 @@ Pretty print the file
   end [@warning "-32"]
 < language: ocaml
 
-  $ pp_query ./lib/foreign.ml | ocamlformat --impl -
+  $ pp_query_dbcaml ./lib/foreign.ml | ocamlformat --impl -
   module User = struct
     type t =
       { id : int [@primary_key { autoincrement = true }]
@@ -1018,7 +1024,8 @@ Pretty print the file
         let ( let* ) = Stdlib.Result.bind in
         let _ = ( let* ) in
         let open Serde.Ser in
-        fun t ctx ->
+        fun t ->
+          fun ctx ->
           record ctx "t" 2 (fun ctx ->
             let* () = field ctx "id" (int t.id) in
             let* () = field ctx "name" (string t.name) in
@@ -1036,7 +1043,7 @@ Pretty print the file
           let ( let* ) = Stdlib.Result.bind in
           let _ = ( let* ) in
           let open Serde.Ser in
-          fun t ctx -> (s (list (s serialize_t))) t ctx
+          fun t -> fun ctx -> (s (list (s serialize_t))) t ctx
         ;;
   
         let _ = serialize_row
@@ -1079,7 +1086,7 @@ Pretty print the file
             let ( let* ) = Stdlib.Result.bind in
             let _ = ( let* ) in
             let open Serde.Ser in
-            fun t ctx -> int t ctx
+            fun t -> fun ctx -> int t ctx
           ;;
   
           let _ = serialize_id
@@ -1105,7 +1112,7 @@ Pretty print the file
             let ( let* ) = Stdlib.Result.bind in
             let _ = ( let* ) in
             let open Serde.Ser in
-            fun t ctx -> string t ctx
+            fun t -> fun ctx -> string t ctx
           ;;
   
           let _ = serialize_name
@@ -1229,7 +1236,8 @@ Pretty print the file
         let ( let* ) = Stdlib.Result.bind in
         let _ = ( let* ) in
         let open Serde.Ser in
-        fun t ctx ->
+        fun t ->
+          fun ctx ->
           record ctx "t" 3 (fun ctx ->
             let* () = field ctx "id" (int t.id) in
             let* () = field ctx "user_id" (int t.user_id) in
@@ -1248,7 +1256,7 @@ Pretty print the file
           let ( let* ) = Stdlib.Result.bind in
           let _ = ( let* ) in
           let open Serde.Ser in
-          fun t ctx -> (s (list (s serialize_t))) t ctx
+          fun t -> fun ctx -> (s (list (s serialize_t))) t ctx
         ;;
   
         let _ = serialize_row
@@ -1293,7 +1301,7 @@ Pretty print the file
             let ( let* ) = Stdlib.Result.bind in
             let _ = ( let* ) in
             let open Serde.Ser in
-            fun t ctx -> int t ctx
+            fun t -> fun ctx -> int t ctx
           ;;
   
           let _ = serialize_id
@@ -1319,7 +1327,7 @@ Pretty print the file
             let ( let* ) = Stdlib.Result.bind in
             let _ = ( let* ) in
             let open Serde.Ser in
-            fun t ctx -> int t ctx
+            fun t -> fun ctx -> int t ctx
           ;;
   
           let _ = serialize_user_id
@@ -1345,7 +1353,7 @@ Pretty print the file
             let ( let* ) = Stdlib.Result.bind in
             let _ = ( let* ) in
             let open Serde.Ser in
-            fun t ctx -> string t ctx
+            fun t -> fun ctx -> string t ctx
           ;;
   
           let _ = serialize_content
@@ -1380,12 +1388,12 @@ Pretty print the file
       let relation = "posts"
       let _ = relation
   
-      let insert ~content db =
+      let insert ~user_id ~content db =
         match
           DBCaml.query
             db
-            ~params:[ Params.content content ]
-            ~query:"INSERT INTO posts (content) VALUES (?) RETURNING *"
+            ~params:[ Params.user_id user_id; Params.content content ]
+            ~query:"INSERT INTO posts (user_id, content) VALUES (?, ?) RETURNING *"
             ~deserializer:deserialize_row
         with
         | Ok (t :: []) -> Ok t
@@ -1400,7 +1408,7 @@ Pretty print the file
   end
 < language: ocaml
 
-  $ pp_query ./lib/invalid_model.ml | ocamlformat --impl -
+  $ pp_query_dbcaml ./lib/invalid_model.ml | ocamlformat --impl -
   module ShouldError = struct
     type t = [%ocaml.error "Invalid Model: Module 'Post' is not selected in query"]
   
@@ -1408,7 +1416,7 @@ Pretty print the file
   end [@warning "-32"]
 < language: ocaml
 
-  $ pp_query ./lib/simple_join.ml | ocamlformat --impl -
+  $ pp_query_dbcaml ./lib/simple_join.ml | ocamlformat --impl -
   module AuthorAndContent = struct
     type t =
       { name : User.Fields.name
@@ -1423,7 +1431,8 @@ Pretty print the file
         let ( let* ) = Stdlib.Result.bind in
         let _ = ( let* ) in
         let open Serde.Ser in
-        fun t ctx ->
+        fun t ->
+          fun ctx ->
           record ctx "t" 2 (fun ctx ->
             let* () = field ctx "name" ((s User.Fields.serialize_name) t.name) in
             let* () = field ctx "content" ((s Post.Fields.serialize_content) t.content) in
@@ -1503,7 +1512,7 @@ Pretty print the file
           let ( let* ) = Stdlib.Result.bind in
           let _ = ( let* ) in
           let open Serde.Ser in
-          fun t ctx -> (s (list (s serialize_t))) t ctx
+          fun t -> fun ctx -> (s (list (s serialize_t))) t ctx
         ;;
   
         let _ = serialize_query
@@ -1558,7 +1567,8 @@ Pretty print the file
         let ( let* ) = Stdlib.Result.bind in
         let _ = ( let* ) in
         let open Serde.Ser in
-        fun t ctx ->
+        fun t ->
+          fun ctx ->
           record ctx "t" 2 (fun ctx ->
             let* () = field ctx "name" ((s User.Fields.serialize_name) t.name) in
             let* () = field ctx "content" ((s Post.Fields.serialize_content) t.content) in
@@ -1638,7 +1648,7 @@ Pretty print the file
           let ( let* ) = Stdlib.Result.bind in
           let _ = ( let* ) in
           let open Serde.Ser in
-          fun t ctx -> (s (list (s serialize_t))) t ctx
+          fun t -> fun ctx -> (s (list (s serialize_t))) t ctx
         ;;
   
         let _ = serialize_query
@@ -1680,7 +1690,7 @@ Pretty print the file
   end [@warning "-32"]
 < language: ocaml
 
-  $ pp_query ./lib/missing_name.ml | ocamlformat --impl -
+  $ pp_query_dbcaml ./lib/missing_name.ml | ocamlformat --impl -
   module User = struct
     type t =
       { id : int [@primary_key { autoincrement = true }]
@@ -1697,7 +1707,7 @@ Pretty print the file
   end
 < language: ocaml
 
-  $ pp_query ./lib/error__multiple_types.ml | ocamlformat --impl -
+  $ pp_query_dbcaml ./lib/error__multiple_types.ml | ocamlformat --impl -
   File "./lib/error__multiple_types.ml", lines 2-8, characters 2-60:
   2 | ..type t =
   3 |     { id : int [@primary_key { autoincrement = true }]
@@ -1709,7 +1719,7 @@ Pretty print the file
   Error: ppx_table requires exactly one type declaration
 < language: ocaml
 
-  $ pp_query ./lib/optional_field.ml | ocamlformat --impl -
+  $ pp_query_dbcaml ./lib/optional_field.ml | ocamlformat --impl -
   module OptionalField = struct
     type t =
       { id : int [@primary_key { autoincrement = true }]
@@ -1779,7 +1789,8 @@ Pretty print the file
         let ( let* ) = Stdlib.Result.bind in
         let _ = ( let* ) in
         let open Serde.Ser in
-        fun t ctx ->
+        fun t ->
+          fun ctx ->
           record ctx "t" 2 (fun ctx ->
             let* () = field ctx "id" (int t.id) in
             let* () = field ctx "optional" ((s (option string)) t.optional) in
@@ -1797,7 +1808,7 @@ Pretty print the file
           let ( let* ) = Stdlib.Result.bind in
           let _ = ( let* ) in
           let open Serde.Ser in
-          fun t ctx -> (s (list (s serialize_t))) t ctx
+          fun t -> fun ctx -> (s (list (s serialize_t))) t ctx
         ;;
   
         let _ = serialize_row
@@ -1840,7 +1851,7 @@ Pretty print the file
             let ( let* ) = Stdlib.Result.bind in
             let _ = ( let* ) in
             let open Serde.Ser in
-            fun t ctx -> int t ctx
+            fun t -> fun ctx -> int t ctx
           ;;
   
           let _ = serialize_id
@@ -1866,7 +1877,7 @@ Pretty print the file
             let ( let* ) = Stdlib.Result.bind in
             let _ = ( let* ) in
             let open Serde.Ser in
-            fun t ctx -> (s (option string)) t ctx
+            fun t -> fun ctx -> (s (option string)) t ctx
           ;;
   
           let _ = serialize_optional

@@ -8,14 +8,9 @@ let extender_rule =
   let expander ~ctxt s =
     let loc = Expansion_context.Extension.extension_point_loc ctxt in
     (* [%stri module X = struct end] *)
-    { pmod_desc = Pmod_structure [ [%stri type t = int] ]
-    ; pmod_loc = loc
-    ; pmod_attributes = []
-    }
+    { pmod_desc = Pmod_structure [ [%stri type t = int] ]; pmod_loc = loc; pmod_attributes = [] }
   in
-  let my_extender =
-    Extension.V3.declare extender_name context (extracter ()) expander
-  in
+  let my_extender = Extension.V3.declare extender_name context (extracter ()) expander in
   Context_free.Rule.extension my_extender
 ;;
 
@@ -86,22 +81,12 @@ let letter_rule =
                 let open Ast_builder.Default in
                 let m = ModelField.model_name model_field in
                 let f_start, f_end, f = model_field.field in
-                let f_loc =
-                  Location.
-                    { loc_start = f_start; loc_end = f_end; loc_ghost = false }
-                in
+                let f_loc = Location.{ loc_start = f_start; loc_end = f_end; loc_ghost = false } in
                 let f_loc = add_location query_loc f_loc 1 in
                 let ident = Ldot (Lident m, "Fields") in
                 let ident = Ldot (ident, f) in
-                let type_ : core_type =
-                  ptyp_constr ~loc (Loc.make ~loc:f_loc ident) []
-                in
-                Some
-                  (label_declaration
-                     ~loc
-                     ~name:(Loc.make ~loc f)
-                     ~mutable_:Immutable
-                     ~type_)
+                let type_ : core_type = ptyp_constr ~loc (Loc.make ~loc:f_loc ident) [] in
+                Some (label_declaration ~loc ~name:(Loc.make ~loc f) ~mutable_:Immutable ~type_)
               | _ -> None)
             expressions
         in
@@ -120,15 +105,9 @@ let letter_rule =
                 ~private_:Public
                 ~manifest:None
             in
-            let attributes =
-              Attr.make_deriving_attr ~loc [ "serialize"; "deserialize" ]
-            in
-            let type_decl =
-              { type_decl with ptype_attributes = [ attributes ] }
-            in
-            let type_decl =
-              Ast_builder.Default.pstr_type ~loc Recursive [ type_decl ]
-            in
+            let attributes = Attr.make_deriving_attr ~loc [ "serialize"; "deserialize" ] in
+            let type_decl = { type_decl with ptype_attributes = [ attributes ] } in
+            let type_decl = Ast_builder.Default.pstr_type ~loc Recursive [ type_decl ] in
             let query_fn = Gen.of_ast ~loc ast in
             (* [%p arg1] *)
             (* let arg1 = Ast_builder.Default.ppat_var ~loc (Loc.make ~loc "db") in *)
@@ -142,12 +121,7 @@ let letter_rule =
             ]
           | Some invalid_model ->
             (* let loc = Oql.Ast.Model.location invalid_model in *)
-            let loc =
-              add_location
-                query_loc
-                (Oql.Ast.ModelField.location invalid_model)
-                2
-            in
+            let loc = add_location query_loc (Oql.Ast.ModelField.location invalid_model) 2 in
             (* let _ = Ast_builder.Default.plb in *)
             let ty =
               Ast_builder.Default.ptyp_extension ~loc
@@ -171,16 +145,11 @@ let letter_rule =
       }
     in
     let binding =
-      Ast_builder.Default.module_binding
-        ~loc
-        ~name:(Loc.make ~loc (Some pat))
-        ~expr:x
+      Ast_builder.Default.module_binding ~loc ~name:(Loc.make ~loc (Some pat)) ~expr:x
     in
     { pstr_desc = Pstr_module binding; pstr_loc = loc }
   in
   Context_free.Rule.extension my_extender
 ;;
 
-Driver.register_transformation
-  ~rules:[ extender_rule; letter_rule ]
-  "ppx_octane"
+Driver.register_transformation ~rules:[ extender_rule; letter_rule ] "ppx_octane_ocaml"

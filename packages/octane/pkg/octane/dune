@@ -3,4 +3,4 @@
  (inline_tests)
  (libraries DBCaml core)
  (preprocess
-  (pps ppx_octane ppx_deriving.std ppx_jane)))
+  (pps ppx_octane_dbcaml ppx_deriving.std ppx_jane)))

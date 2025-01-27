@@ -7,11 +7,19 @@
 (include_subdirs qualified)
 
 (library
- (name ppx_octane)
+ (name ppx_octane_dbcaml)
  (kind ppx_deriver)
- (package ppx_octane)
+ (package ppx_octane_dbcaml)
  (flags
   (:standard -w -27))
- (libraries ppxlib core fmt ppx_deriving.api oql serde_derive bos)
+ (libraries
+  ppxlib
+  core
+  fmt
+  ppx_deriving.api
+  serde_derive
+  bos
+  oql
+  OctaneTypes)
  (preprocess
   (pps ppx_deriving.std ppx_string ppxlib.metaquot)))

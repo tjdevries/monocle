@@ -19,13 +19,4 @@
  (modules oql_exec)
  (libraries oql octane fmt bos DBCaml DBCamlSqlite riot serde core)
  (preprocess
-  (pps serde_derive ppx_octane)))
-
-(executable
- (name pp_query)
- (public_name pp_query)
- (package ppx_octane)
- (modules pp_query)
- (libraries ppxlib ppx_octane)
- (preprocess
-  (pps ppx_octane)))
+  (pps serde_derive ppx_octane_dbcaml)))
