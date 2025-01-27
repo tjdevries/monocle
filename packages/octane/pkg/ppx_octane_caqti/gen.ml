@@ -3,10 +3,7 @@ open Oql
 open Core
 module TableOrQuery = Ast.TableOrQuery
 
-let make_positional_param_expr ~loc i =
-  let ident = Loc.make ~loc (Lident ("p" ^ Int.to_string i)) in
-  Ast_builder.Default.pexp_ident ~loc ident
-;;
+let make_positional_param_expr = OctanePPX.Params.make_positional_param_expr
 
 let table_relation ~loc relation =
   let relation = TableOrQuery.get_name relation in
@@ -76,15 +73,12 @@ let rec of_ast ~loc (ast : Ast.t) =
   | Select select ->
     let query_expr = to_select_string ~loc ~state select in
     let paramlist =
-      List.fold_left params.positional ~init:[] ~f:(fun acc pos ->
-        Fmt.str "p%d" pos :: acc)
+      List.fold_left params.positional ~init:[] ~f:(fun acc pos -> Fmt.str "p%d" pos :: acc)
     in
     let paramlist = List.rev_append paramlist params.named in
     let paramslist =
       List.map paramlist ~f:(fun param ->
-        let type_constraint =
-          Analysis.get_type_of_named_param ast (NamedParam param)
-        in
+        let type_constraint = Analysis.get_type_of_named_param ast (NamedParam param) in
         type_of_expression_to_generated_expression ~loc type_constraint param)
     in
     let params_expr = Ast_builder.Default.elist ~loc paramslist in
@@ -106,8 +100,7 @@ let rec of_ast ~loc (ast : Ast.t) =
         make_fun ~loc (Fmt.str "p%d" pos) body)
     in
     let body =
-      List.fold params.named ~init:body ~f:(fun body pos ->
-        make_labelled_fun ~loc pos body)
+      List.fold params.named ~init:body ~f:(fun body pos -> make_labelled_fun ~loc pos body)
     in
     let f = make_fun ~loc "db" body in
     [%stri let query = [%e f]]
@@ -115,23 +108,15 @@ let rec of_ast ~loc (ast : Ast.t) =
 and of_from_clause ~loc ~state (from : Ast.from_clause) =
   match from with
   | From relations ->
-    let tables =
-      List.map relations ~f:(table_relation ~loc)
-      |> Ast_builder.Default.elist ~loc
-    in
+    let tables = List.map relations ~f:(table_relation ~loc) |> Ast_builder.Default.elist ~loc in
     [%expr String.concat ~sep:", " [%e tables]]
   | Join join_clause ->
     (* <table> <join stanzas> *)
     let relation = table_relation ~loc join_clause.relation in
     let stanzas =
-      List.map join_clause.stanzas ~f:(of_join_stanza ~loc ~state)
-      |> Ast_builder.Default.elist ~loc
+      List.map join_clause.stanzas ~f:(of_join_stanza ~loc ~state) |> Ast_builder.Default.elist ~loc
     in
-    [%expr
-      Stdlib.Format.sprintf
-        "%s %s"
-        [%e relation]
-        (String.concat ~sep:"\n" [%e stanzas])]
+    [%expr Stdlib.Format.sprintf "%s %s" [%e relation] (String.concat ~sep:"\n" [%e stanzas])]
 
 and of_join_stanza ~loc ~state (stanza : Ast.join_stanza) =
   let op, table, join_constraint = stanza in
@@ -165,11 +150,7 @@ and to_select_string ~loc ~state (select : Ast.select_statement) =
             [%e from_clause]
             [%e where_clause]]
       | None ->
-        [%expr
-          Stdlib.Format.sprintf
-            "SELECT %s FROM %s"
-            [%e select_clause]
-            [%e from_clause]]
+        [%expr Stdlib.Format.sprintf "SELECT %s FROM %s" [%e select_clause] [%e from_clause]]
     in
     e
   | None -> failwith "no relations: must be arch user"
@@ -189,8 +170,7 @@ and of_expression ~loc ~state (expression : Ast.expression) =
   | Ast.NamedParam name -> [%expr "KEKW"]
   | Ast.Column col -> of_column ~loc col
   | Ast.Index (_, _) -> failwith "Index"
-  | Ast.BinaryExpression (left, op, right) ->
-    of_binary_expression ~loc ~state left op right
+  | Ast.BinaryExpression (left, op, right) -> of_binary_expression ~loc ~state left op right
   | Ast.UnaryExpression (_, _) -> failwith "UnaryExpression"
   | Ast.FunctionCall (_, _) -> failwith "FunctionCall"
   | Ast.Null -> failwith "Null"
@@ -221,9 +201,7 @@ and of_binary_expression ~loc ~state left op right =
   | _ -> failwith "binary expression: not supported"
 
 and of_named_param ~loc ~state (name : string) =
-  let named_position, _ =
-    List.findi_exn state.params.named ~f:(fun _ n -> String.(n = name))
-  in
+  let named_position, _ = List.findi_exn state.params.named ~f:(fun _ n -> String.(n = name)) in
   let position = List.length state.params.positional + named_position + 1 in
   of_position_param ~loc ~state position
 

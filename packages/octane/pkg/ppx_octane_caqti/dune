@@ -13,7 +13,8 @@
   ppx_deriving.api
   serde_derive
   bos
+  oql
   OctaneTypes
-  oql)
+  OctanePPX)
  (preprocess
   (pps ppx_deriving.std ppx_string ppxlib.metaquot)))

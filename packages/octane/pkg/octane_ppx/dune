@@ -1,0 +1,4 @@
+(library
+ (package octane)
+ (name OctanePPX)
+ (libraries ppxlib core fmt ppx_deriving.api))

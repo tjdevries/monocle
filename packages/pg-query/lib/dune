@@ -1,0 +1,15 @@
+(rule
+ (deps
+  (source_tree libpg_query))
+ (targets libpg_query.a)
+ (action
+  (copy libpg_query/libpg_query.a libpg_query.a)))
+
+(library
+ (name PGQuery)
+ (public_name PGQuery)
+ (modes native)
+ (libraries ctypes ctypes.foreign)
+ (preprocess
+  (pps ppx_deriving.show))
+ (foreign_archives pg_query))

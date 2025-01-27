@@ -1,0 +1,4 @@
+(rule
+(deps (source_tree .))
+(targets libpg_query.a)
+(action (run %{make} build)))

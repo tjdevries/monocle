@@ -255,3 +255,18 @@
  (name dbcaml-examples)
  (allow_empty)
  (depends DBCaml DBCamlPostgres serde riot))
+
+;; vendored pg-query stuff, don't know if we'll keep
+
+(package
+ (name PGQuery)
+ (depends
+  (ocaml
+   (>= 4.07))
+  (dune
+   (>= 2.0))
+  cmdliner
+  ctypes
+  ctypes-foreign
+  ppx_deriving
+  (alcotest :with-test)))
