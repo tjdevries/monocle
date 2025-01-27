@@ -2,6 +2,18 @@
 
 Mono repo for ocaml -> monocle
 
+Main interesting project for people will be:
+- `packages/drive` -> an ocaml 5 based fullstack framework, lots of inspiration from Dream
+- `packages/octane` -> a query builder for ocaml, typesafety up and down the stack.
+
+Final goal:
+- `packages/fambook`
+    - A photo sharing site/app for friends and family.
+    - Anti-social media. Chronological feed, ends when no one uploads new photos.
+    - No ads, paid for by photo owners.
+    - No virality, invite only to albums to share with friends.
+    - (that's the short pitch, anyway, it's the project I will be building libraries for)
+
 # Usage
 
 I don't care if you use it or not. Please don't actually.
