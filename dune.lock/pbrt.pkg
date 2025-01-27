@@ -1,0 +1,17 @@
+(version 3.1.1)
+
+(build
+ (progn
+  (when
+   %{pkg-self:dev}
+   (run dune subst))
+  (run dune build -p %{pkg-self:name} -j %{jobs} @install)))
+
+(depends dune stdlib-shims ocaml)
+
+(source
+ (fetch
+  (url
+   https://github.com/mransan/ocaml-protoc/releases/download/v3.1.1/ocaml-protoc-3.1.1.tbz)
+  (checksum
+   sha256=c5657fcbfcbaea361beb847f72b8a6a6f36ce9e773bf285b278a0da75f988fbc)))

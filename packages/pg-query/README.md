@@ -1,5 +1,12 @@
 TAKEN FROM: https://github.com/roddyyaga/pg_query-ocaml/tree/master
 
+NOTE:
+- I had to change some of the names in the protobuf, because they were overriding some OCaml stdlib functions, like List and stuff. That made it a bit of a problem.
+    - Possibly, ocaml-protoc has a way to mangle the names, but I couldn't find it.
+
+Looks like we can change the names in the protobuf generation, in the ruby file.
+- But, note that some of them, like List are hard-coded in the ruby file... which is a little confusing. Just didn't want to forget.
+
 # pg_query-ocaml
 
 Bindings for [pg_query](https://github.com/lfittl/libpg_query) for parsing PostgreSQL. Documentation is

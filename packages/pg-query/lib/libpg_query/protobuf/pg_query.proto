@@ -237,11 +237,11 @@ message Node {
     InlineCodeBlock inline_code_block = 219 [json_name="InlineCodeBlock"];
     CallContext call_context = 220 [json_name="CallContext"];
     Integer integer = 221 [json_name="Integer"];
-    Float float = 222 [json_name="Float"];
-    String string = 223 [json_name="String"];
+    PGFloat float = 222 [json_name="PGFloat"];
+    PGString string = 223 [json_name="PGString"];
     BitString bit_string = 224 [json_name="BitString"];
     Null null = 225 [json_name="Null"];
-    List list = 226 [json_name="List"];
+    PGList list = 226 [json_name="List"];
     IntList int_list = 227 [json_name="IntList"];
     OidList oid_list = 228 [json_name="OidList"];
   }
@@ -252,12 +252,12 @@ message Integer
   int32 ival = 1; /* machine integer */
 }
 
-message Float
+message PGFloat
 {
   string str = 1; /* string */
 }
 
-message String
+message PGString
 {
   string str = 1; /* string */
 }
@@ -272,7 +272,7 @@ message Null
   // intentionally empty
 }
 
-message List
+message PGList
 {
   repeated Node items = 1;
 }

@@ -269,4 +269,5 @@
   ctypes
   ctypes-foreign
   ppx_deriving
+  ocaml-protoc
   (alcotest :with-test)))

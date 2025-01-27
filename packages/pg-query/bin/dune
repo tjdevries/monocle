@@ -2,4 +2,4 @@
  (name pg_check)
  (public_name pg_check)
  (package PGQuery)
- (libraries ctypes ctypes.foreign cmdliner pg_query))
+ (libraries ctypes ctypes.foreign cmdliner PGQuery))
