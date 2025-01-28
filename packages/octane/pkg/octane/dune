@@ -1,6 +1,7 @@
 (library
  (name octane)
+ (public_name octane)
  (inline_tests)
- (libraries DBCaml core)
+ (libraries core caqti caqti-eio.unix)
  (preprocess
-  (pps ppx_octane_dbcaml ppx_deriving.std ppx_jane)))
+  (pps ppx_deriving.std ppx_jane)))

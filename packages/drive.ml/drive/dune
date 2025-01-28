@@ -15,7 +15,7 @@
   httpun
   httpun-eio
   piaf
-  ;; mlx
+  octane
   html_of_jsx)
  (preprocess
   (pps html_of_jsx.ppx)))

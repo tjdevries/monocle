@@ -1,2 +1,0 @@
-(cram
- (deps %{bin:oql_parse} %{bin:oql_lex} %{bin:pp_query_caqti}))

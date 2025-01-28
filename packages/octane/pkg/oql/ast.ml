@@ -2,9 +2,7 @@ open Core
 
 type loc = Lexing.position
 
-let pp_loc fmt (loc : loc) =
-  Stdlib.Format.fprintf fmt "<%d:%d>" loc.pos_lnum loc.pos_cnum
-;;
+let pp_loc fmt (loc : loc) = Stdlib.Format.fprintf fmt "<%d:%d>" loc.pos_lnum loc.pos_cnum
 
 (* TODO: This is a bit weird, but it's OK for now. Used to ignore locs when comparing equality *)
 let equal_loc _ _ = true
@@ -193,9 +191,6 @@ module FromClause = struct
   let relations = function
     | From relations -> relations
     | Join join ->
-      List.fold_left
-        join.stanzas
-        ~init:[ join.relation ]
-        ~f:(fun acc (_, rel, _) -> rel :: acc)
+      List.fold_left join.stanzas ~init:[ join.relation ] ~f:(fun acc (_, rel, _) -> rel :: acc)
   ;;
 end

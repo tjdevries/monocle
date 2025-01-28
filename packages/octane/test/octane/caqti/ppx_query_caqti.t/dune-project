@@ -1,3 +1,0 @@
-(lang dune 3.14)
-
-(name ppx_octane_caqti_test)

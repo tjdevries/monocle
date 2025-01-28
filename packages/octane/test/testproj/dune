@@ -1,2 +1,0 @@
-(cram
- (deps %{bin:oql_parse} %{bin:pp_query_dbcaml} %{bin:oql_lex}))

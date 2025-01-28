@@ -7,7 +7,7 @@ type env = Eio_unix.Stdenv.base
 type context =
   { env : env
   ; sw : Eio.Switch.t
-  ; db : Database.pool
+  ; db : Octane.Database.t
   }
 
 module type T = sig

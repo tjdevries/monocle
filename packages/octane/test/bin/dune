@@ -1,25 +1,16 @@
 (executable
- (name pp_query_dbcaml)
- (public_name pp_query_dbcaml)
- (package ppx_octane_dbcaml)
- (modules pp_query_dbcaml)
- (libraries ppxlib ppx_octane_dbcaml)
+ (name pp_query)
+ (public_name pp_query)
+ (package ppx_octane)
+ (modules pp_query)
+ (libraries ppxlib ppx_octane octane)
  (preprocess
-  (pps ppx_octane_dbcaml)))
-
-(executable
- (name pp_query_caqti)
- (public_name pp_query_caqti)
- (package ppx_octane_caqti)
- (modules pp_query_caqti)
- (libraries ppxlib ppx_octane_caqti)
- (preprocess
-  (pps ppx_octane_caqti)))
+  (pps ppx_octane)))
 
 (test
  (name typecheck_caqti)
  (modules typecheck_caqti)
- (package ppx_octane_caqti)
- (libraries ppxlib ppx_octane_caqti caqti caqti-eio.unix)
+ (package ppx_octane)
+ (libraries ppxlib ppx_octane caqti caqti-eio.unix octane)
  (preprocess
-  (pps ppx_octane_caqti)))
+  (pps ppx_octane)))

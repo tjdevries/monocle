@@ -1,5 +1,0 @@
-(test
- (package DBCamlPostgres)
- (name escape_test)
- (modules escape_test)
- (libraries riot DBCamlPostgres messages alcotest))

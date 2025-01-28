@@ -1,24 +1,24 @@
-type 'a unfetched = [ `unfetched of 'a ]
-type ('id, 'model) fetched = [ `fetched of 'id * 'model ]
+type 'a id = [ `id of 'a ]
+type ('id, 'model) model = [ `model of 'id * 'model ]
 
 type ('id, 'model) t =
-  [ 'id unfetched
-  | ('id, 'model) fetched
+  [ 'id id
+  | ('id, 'model) model
   ]
 
 let fetch db (model : _ t) =
   match model with
-  | `unfetched id -> failwith "TODO"
-  | `fetched (_, model) -> model
+  | `id id -> failwith "TODO"
+  | `model (_, model) -> model
 ;;
 
-let unwrap (t : _ fetched) =
+let unwrap (t : _ model) =
   match t with
-  | `fetched (_, t) -> t
+  | `model (_, t) -> t
 ;;
 
 let id (t : _ t) =
   match t with
-  | `unfetched id -> id
-  | `fetched (id, _) -> id
+  | `id id -> id
+  | `model (id, _) -> id
 ;;

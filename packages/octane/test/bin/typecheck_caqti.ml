@@ -1,6 +1,7 @@
 module User = struct
   type t =
-    { user : string
+    { id : int [@primary_key { autoincrement = true }]
+    ; user : string
     ; email : string
     }
   [@@deriving table { name = "users" }]

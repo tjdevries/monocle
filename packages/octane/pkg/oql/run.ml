@@ -3,9 +3,7 @@ module I = Parser.MenhirInterpreter
 let succeed v = Ok v
 
 let fail lexbuf _ =
-  let msg =
-    Fmt.str "At offset %d: syntax error.\n%!" (Lexing.lexeme_start lexbuf)
-  in
+  let msg = Fmt.str "At offset %d: syntax error.\n%!" (Lexing.lexeme_start lexbuf) in
   Error msg
 ;;
 

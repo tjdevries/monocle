@@ -1,6 +1,6 @@
 (library
  (name fambook)
  (package fambook)
- (libraries caqti caqti-eio fambook.ssr drive serde)
+ (libraries caqti caqti-eio fambook.ssr drive serde octane)
  (preprocess
-  (pps ppx_octane_caqti)))
+  (pps ppx_octane)))

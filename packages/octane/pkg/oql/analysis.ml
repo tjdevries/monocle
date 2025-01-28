@@ -28,18 +28,16 @@ let get_used_models ast =
   let open Ast in
   match ast with
   | Select { select = { result_columns; _ }; _ } ->
-    List.fold_left result_columns ~init:[] ~f:(fun acc ->
-        function
-        | Expression (expr, _) -> get_models_from_expression expr @ acc
-        | _ -> acc)
+    List.fold_left result_columns ~init:[] ~f:(fun acc -> function
+      | Expression (expr, _) -> get_models_from_expression expr @ acc
+      | _ -> acc)
     |> List.dedup_and_sort ~compare:ModelField.compare
 ;;
 
 let get_invalid_model ast =
   let used_models = get_used_models ast in
   let valid_models = get_valid_models ast in
-  List.find used_models ~f:(fun m ->
-    not (List.mem valid_models m.model ~equal:Ast.Model.equal))
+  List.find used_models ~f:(fun m -> not (List.mem valid_models m.model ~equal:Ast.Model.equal))
 ;;
 
 type params =
@@ -63,8 +61,7 @@ let find_params (ast : Ast.t) =
     | BinaryExpression (left, _, right) -> acc |> search left |> search right
     | UnaryExpression (_, expr) -> search expr acc
     | FunctionCall (_, _) -> failwith "function call"
-    | StringLiteral _ | BitString _ | TypeCast _ | Index (_, _) | Null | _ ->
-      acc
+    | StringLiteral _ | BitString _ | TypeCast _ | Index (_, _) | Null | _ -> acc
   in
   match ast with
   | Select { select = { result_columns; _ }; from = Some _; where } ->
@@ -74,12 +71,8 @@ let find_params (ast : Ast.t) =
         | _ -> None)
     in
     let acc = { named = []; positional = [] } in
-    let acc =
-      List.fold_left ~init:acc ~f:(fun acc expr -> search expr acc) expressions
-    in
-    let acc =
-      Option.fold ~init:acc ~f:(fun acc where -> search where acc) where
-    in
+    let acc = List.fold_left ~init:acc ~f:(fun acc expr -> search expr acc) expressions in
+    let acc = Option.fold ~init:acc ~f:(fun acc where -> search where acc) where in
     { acc with positional = List.sort acc.positional ~compare:Int.compare }
   | _ -> assert false
 ;;
@@ -96,10 +89,10 @@ let get_type_of_named_param ast param =
   let open Ast in
   let rec search expr =
     match expr with
-    | BinaryExpression (left, _op, right) when Ast.equal_expression right param
-      -> get_type_of_expression left
-    | BinaryExpression (left, _op, _right) when Ast.equal_expression left param
-      -> failwith "param matches left"
+    | BinaryExpression (left, _op, right) when Ast.equal_expression right param ->
+      get_type_of_expression left
+    | BinaryExpression (left, _op, _right) when Ast.equal_expression left param ->
+      failwith "param matches left"
     | BinaryExpression (_left, _op, _right) -> None
     | UnaryExpression (_, expr) -> search expr
     | FunctionCall (_, _) -> failwith "function call"

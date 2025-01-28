@@ -15,8 +15,6 @@ let print_parsed_file fpath =
 ;;
 
 let _ =
-  let files =
-    Stdlib.Sys.argv.(1) |> Fpath.v |> Dir.contents |> Rresult.R.get_ok
-  in
+  let files = Stdlib.Sys.argv.(1) |> Fpath.v |> Dir.contents |> Rresult.R.get_ok in
   List.iter ~f:print_parsed_file files
 ;;

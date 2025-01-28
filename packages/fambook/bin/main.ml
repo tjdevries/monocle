@@ -41,9 +41,9 @@ module UserChats : Route.T = struct
       let message =
         List.find_map
           (fun (k, v) ->
-            match k, v with
-            | "message", [ message ] -> Some message
-            | _ -> None)
+             match k, v with
+             | "message", [ message ] -> Some message
+             | _ -> None)
           query
         |> Option.value ~default:"MISSING"
       in
@@ -63,10 +63,25 @@ let inner pool =
   let open Fambook.Models in
   let* _ = Chat.Table.drop pool in
   let* _ = Chat.Table.create pool in
-  let* _ = Chat.insert pool ~username:"tjdevries" ~message:"Hello world" in
+  let* chat1 = Chat.insert pool ~username:"tjdevries" ~message:"Hello world" in
+  let chat1 = { chat1 with message = "Hello world (owowowowow)" } in
+  let* _ = Chat.update pool chat1 in
   let* _ = Chat.insert pool ~username:"tjdevries" ~message:"Second Chat" in
   let* _ = Chat.insert pool ~username:"tjdevries" ~message:"Third Chat" in
   let* _ = Chat.insert pool ~username:"tjdevries" ~message:"Wow, beginbot is cool" in
+  let* chat = Chat.read pool 2 in
+  let _ =
+    match chat with
+    | Some chat -> Format.printf "@.SOME chat: %d, %s@." chat.id chat.message
+    | None -> Format.printf "no chat@."
+  in
+  let* () = Chat.delete pool 2 in
+  let* chat = Chat.read pool 2 in
+  let _ =
+    match chat with
+    | Some _ -> failwith "Should have deleted the chat"
+    | None -> ()
+  in
   let* _ =
     Chat.user_chats pool ~username:"tjdevries" ~f:(fun { id; username; message } ->
       Format.printf "%d, %s: %s@." id username message;
@@ -81,7 +96,7 @@ let () =
   @@ fun env ->
   Eio.Switch.run
   @@ fun sw ->
-  let= db = Database.connect ~sw ~env url in
+  let= db = Octane.Database.connect ~sw ~env url in
   let result =
     match true with
     | true -> inner db

@@ -29,15 +29,6 @@
 
 (generate_opam_files false)
 
-(pin
- (url "git+https://github.com/riot-ml/riot.git")
- (package
-  (name riot)))
-
-; (pin
-;  (url "git+https://github.com/ocaml-mlx/mlx.git")
-;  (package (name mlx)))
-
 (package
  (name fambook)
  (depends ocaml dune ocamlformat caqti caqti-eio caqti-driver-postgresql))
@@ -54,8 +45,6 @@
   ;; Parsing deps
   menhir
   menhirLib
-  DBCaml
-  DBCamlSqlite
   bos
   serde
   serde_derive
@@ -82,25 +71,13 @@
   core
   ppx_deriving
   ppx_expect
-  ;; Riot suite
-  DBCaml
-  DBCamlSqlite
-  riot
   serde
   serde_derive
   ;; Local projects
-  oql
-  ppx_octane_dbcaml))
+  oql))
 
 (package
- (name ppx_octane_caqti)
- (synopsis "PPX for deriving octane tables, queries and more")
- (description
-  "PPX for deriving octane tables, queries and more. Includes %query, %table")
- (depends ocaml dune ppxlib fmt bos core oql))
-
-(package
- (name ppx_octane_dbcaml)
+ (name ppx_octane)
  (synopsis "PPX for deriving octane tables, queries and more")
  (description
   "PPX for deriving octane tables, queries and more. Includes %query, %table")
@@ -193,68 +170,6 @@
  (name vite-plugin-ocaml)
  (allow_empty)
  (depends ocaml dune melange s_tier))
-
-;; dbcaml
-
-(package
- (name DBCaml)
- (synopsis "Database toolkit for OCaml")
- (description "Database toolkit for OCaml")
- (depends
-  ocaml
-  dune
-  (alcotest :with-test)
-  (riot
-   (>= 0.0.9))
-  ppx_deriving
-  serde
-  uri)
- (tags
-  (topics "database" "dbcaml")))
-
-(package
- (name DBCamlPostgres)
- (synopsis "Postgres driver for dbcaml")
- (description "Postgres driver for dbcaml")
- (depends
-  ocaml
-  (alcotest :with-test)
-  dune
-  DBCaml
-  bytestring
-  cryptokit
-  castore
-  serde
-  serde_derive
-  (riot
-   (>= 0.0.9))
-  (tls
-   (>= 1.0.0))
-  uri)
- (tags
-  (topics "database" "dbcaml" "postgres")))
-
-(package
- (name DBCamlSqlite)
- (synopsis "Sqlite support for DBCaml")
- (description "Sqlite support for DBCaml")
- (depends
-  ocaml
-  (alcotest :with-test)
-  dune
-  DBCaml
-  riot
-  sqlite3
-  serde
-  serde_json
-  yojson)
- (tags
-  (topics "sqlite" "serde" "ocaml")))
-
-(package
- (name dbcaml-examples)
- (allow_empty)
- (depends DBCaml DBCamlPostgres serde riot))
 
 ;; vendored pg-query stuff, don't know if we'll keep
 

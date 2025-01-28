@@ -10,4 +10,3 @@ let () =
   let _ = Caqti_query.L "Hello" in
   ()
 ;;
-

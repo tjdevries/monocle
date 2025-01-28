@@ -11,12 +11,3 @@
  (name oql_lex)
  (modules oql_lex)
  (libraries oql octane fmt bos core))
-
-(executable
- (name oql_exec)
- (public_name oql_exec)
- (package oql)
- (modules oql_exec)
- (libraries oql octane fmt bos DBCaml DBCamlSqlite riot serde core)
- (preprocess
-  (pps serde_derive ppx_octane_dbcaml)))

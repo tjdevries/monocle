@@ -1,7 +1,6 @@
 open Import
 include Types
 
-module Database = Database
 module Examples = Examples
 module Request = Request
 module Response = Response

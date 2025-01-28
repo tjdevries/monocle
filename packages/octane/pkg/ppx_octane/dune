@@ -1,0 +1,19 @@
+(include_subdirs qualified)
+
+(library
+ (name ppx_octane)
+ (kind ppx_deriver)
+ (package ppx_octane)
+ (flags
+  (:standard -w -27))
+ (libraries
+  ppxlib
+  core
+  fmt
+  ppx_deriving.api
+  serde_derive
+  bos
+  oql
+  OctaneTypes)
+ (preprocess
+  (pps ppx_deriving.std ppx_string ppxlib.metaquot)))

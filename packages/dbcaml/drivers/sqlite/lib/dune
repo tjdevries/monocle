@@ -1,4 +1,0 @@
-(library
- (name DBCamlSqlite)
- (public_name DBCamlSqlite)
- (libraries serde serde_json yojson sqlite3 riot DBCaml))
