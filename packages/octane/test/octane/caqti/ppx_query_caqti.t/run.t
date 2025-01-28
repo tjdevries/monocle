@@ -15,106 +15,8 @@ Pretty print the file
   
       let _ = fun (_ : t) -> ()
   
-      open! Serde
-  
-      let deserialize_t =
-        let ( let* ) = Stdlib.Result.bind in
-        let _ = ( let* ) in
-        let open Serde.De in
-        fun ctx ->
-          record ctx "t" 3 (fun ctx ->
-            let field_visitor =
-              let visit_string _ctx str =
-                match str with
-                | "age" -> Ok `age
-                | "name" -> Ok `name
-                | "id" -> Ok `id
-                | _ -> Ok `invalid_tag
-              in
-              let visit_int _ctx str =
-                match str with
-                | 0 -> Ok `age
-                | 1 -> Ok `name
-                | 2 -> Ok `id
-                | _ -> Ok `invalid_tag
-              in
-              Visitor.make ~visit_string ~visit_int ()
-            in
-            let id = ref None in
-            let name = ref None in
-            let age = ref None in
-            let rec read_fields () =
-              let* tag = next_field ctx field_visitor in
-              match tag with
-              | Some `age ->
-                let* v = field ctx "age" int in
-                age := Some v;
-                read_fields ()
-              | Some `name ->
-                let* v = field ctx "name" string in
-                name := Some v;
-                read_fields ()
-              | Some `id ->
-                let* v = field ctx "id" int in
-                id := Some v;
-                read_fields ()
-              | Some `invalid_tag ->
-                let* () = ignore_any ctx in
-                read_fields ()
-              | None -> Ok ()
-            in
-            let* () = read_fields () in
-            let* id = Stdlib.Option.to_result ~none:(`Msg "missing field \"id\" (\"id\")") !id in
-            let* name = Stdlib.Option.to_result ~none:(`Msg "missing field \"name\" (\"name\")") !name in
-            let* age = Stdlib.Option.to_result ~none:(`Msg "missing field \"age\" (\"age\")") !age in
-            Ok { age; name; id })
-      ;;
-  
-      let _ = deserialize_t
-  
-      let serialize_t =
-        let ( let* ) = Stdlib.Result.bind in
-        let _ = ( let* ) in
-        let open Serde.Ser in
-        fun t ->
-          fun ctx ->
-          record ctx "t" 3 (fun ctx ->
-            let* () = field ctx "id" (int t.id) in
-            let* () = field ctx "name" (string t.name) in
-            let* () = field ctx "age" (int t.age) in
-            Ok ())
-      ;;
-  
-      let _ = serialize_t
-  
       open Caqti_request.Infix
       open Caqti_type.Std
-  
-      type row = t list [@@deriving serialize, deserialize]
-  
-      include struct
-        let _ = fun (_ : row) -> ()
-  
-        let serialize_row =
-          let ( let* ) = Stdlib.Result.bind in
-          let _ = ( let* ) in
-          let open Serde.Ser in
-          fun t -> fun ctx -> (s (list (s serialize_t))) t ctx
-        ;;
-  
-        let _ = serialize_row
-  
-        open! Serde
-  
-        let deserialize_row =
-          let ( let* ) = Stdlib.Result.bind in
-          let _ = ( let* ) in
-          let open Serde.De in
-          fun ctx -> (d (list (d deserialize_t))) ctx
-        ;;
-  
-        let _ = deserialize_row
-      end [@@ocaml.doc "@inline"] [@@merlin.hide]
   
       module Fields = struct
         let id = "id"
@@ -123,106 +25,54 @@ Pretty print the file
         let _ = name
         let age = "age"
         let _ = age
-  
-        type id = int [@@deriving deserialize, serialize]
-  
-        include struct
-          let _ = fun (_ : id) -> ()
-  
-          open! Serde
-  
-          let deserialize_id =
-            let ( let* ) = Stdlib.Result.bind in
-            let _ = ( let* ) in
-            let open Serde.De in
-            fun ctx -> int ctx
-          ;;
-  
-          let _ = deserialize_id
-  
-          let serialize_id =
-            let ( let* ) = Stdlib.Result.bind in
-            let _ = ( let* ) in
-            let open Serde.Ser in
-            fun t -> fun ctx -> int t ctx
-          ;;
-  
-          let _ = serialize_id
-        end [@@ocaml.doc "@inline"] [@@merlin.hide]
-  
-        type name = string [@@deriving deserialize, serialize]
-  
-        include struct
-          let _ = fun (_ : name) -> ()
-  
-          open! Serde
-  
-          let deserialize_name =
-            let ( let* ) = Stdlib.Result.bind in
-            let _ = ( let* ) in
-            let open Serde.De in
-            fun ctx -> string ctx
-          ;;
-  
-          let _ = deserialize_name
-  
-          let serialize_name =
-            let ( let* ) = Stdlib.Result.bind in
-            let _ = ( let* ) in
-            let open Serde.Ser in
-            fun t -> fun ctx -> string t ctx
-          ;;
-  
-          let _ = serialize_name
-        end [@@ocaml.doc "@inline"] [@@merlin.hide]
-  
-        type age = int [@@deriving deserialize, serialize]
-  
-        include struct
-          let _ = fun (_ : age) -> ()
-  
-          open! Serde
-  
-          let deserialize_age =
-            let ( let* ) = Stdlib.Result.bind in
-            let _ = ( let* ) in
-            let open Serde.De in
-            fun ctx -> int ctx
-          ;;
-  
-          let _ = deserialize_age
-  
-          let serialize_age =
-            let ( let* ) = Stdlib.Result.bind in
-            let _ = ( let* ) in
-            let open Serde.Ser in
-            fun t -> fun ctx -> int t ctx
-          ;;
-  
-          let _ = serialize_age
-        end [@@ocaml.doc "@inline"] [@@merlin.hide]
       end
   
       module Params = struct
-        let id id = DBCaml.Params.Values.integer id
+        let id = Caqti_type.Std.int
         let _ = id
-        let name name = DBCaml.Params.Values.text name
+        let name = Caqti_type.Std.string
         let _ = name
-        let age age = DBCaml.Params.Values.integer age
+        let age = Caqti_type.Std.int
         let _ = age
       end
   
       module Table = struct
-        let drop db = (unit ->. unit) @@ "DROP TABLE IF EXISTS users"
+        let drop = (unit ->. unit) @@ "DROP TABLE IF EXISTS users"
+        let _ = drop
+        let drop db = Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.exec drop ()) db
         let _ = drop
   
-        let create db =
+        let create =
           (unit ->. unit)
-          @@ "CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, age INTEGER NOT NULL) strict"
+          @@ "CREATE TABLE users (id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY, name TEXT NOT NULL, age INTEGER \
+              NOT NULL)"
         ;;
   
         let _ = create
+        let create db = Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.exec create ()) db
+        let _ = create
       end
+  
+      let relation = "users"
+      let _ = relation
+  
+      let record =
+        let record id name age = { id; name; age } in
+        product record
+        @@ proj
+             Params.id
+             (fun record -> record.id)
+             (proj Params.name (fun record -> record.name) (proj Params.age (fun record -> record.age) proj_end))
+      ;;
+  
+      let _ = record
+  
+      let insert ~name ~age db =
+        let query = (t2 Params.name Params.age ->! record) @@ "INSERT INTO users (name, age) VALUES (?, ?) RETURNING *" in
+        Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.find query (name, age)) db
+      ;;
+  
+      let _ = insert
     end [@@ocaml.doc "@inline"] [@@merlin.hide]
   end
   
@@ -351,6 +201,7 @@ Pretty print the file
 < language: ocaml
 
   $ pp_query_caqti ./lib/where_id.ml | ocamlformat --impl -
+  module_param: User.id
   module User = struct
     type t = { id : int } [@@deriving table { name = "users" }]
   
@@ -359,131 +210,46 @@ Pretty print the file
   
       let _ = fun (_ : t) -> ()
   
-      open! Serde
-  
-      let deserialize_t =
-        let ( let* ) = Stdlib.Result.bind in
-        let _ = ( let* ) in
-        let open Serde.De in
-        fun ctx ->
-          record ctx "t" 1 (fun ctx ->
-            let field_visitor =
-              let visit_string _ctx str =
-                match str with
-                | "id" -> Ok `id
-                | _ -> Ok `invalid_tag
-              in
-              let visit_int _ctx str =
-                match str with
-                | 0 -> Ok `id
-                | _ -> Ok `invalid_tag
-              in
-              Visitor.make ~visit_string ~visit_int ()
-            in
-            let id = ref None in
-            let rec read_fields () =
-              let* tag = next_field ctx field_visitor in
-              match tag with
-              | Some `id ->
-                let* v = field ctx "id" int in
-                id := Some v;
-                read_fields ()
-              | Some `invalid_tag ->
-                let* () = ignore_any ctx in
-                read_fields ()
-              | None -> Ok ()
-            in
-            let* () = read_fields () in
-            let* id = Stdlib.Option.to_result ~none:(`Msg "missing field \"id\" (\"id\")") !id in
-            Ok { id })
-      ;;
-  
-      let _ = deserialize_t
-  
-      let serialize_t =
-        let ( let* ) = Stdlib.Result.bind in
-        let _ = ( let* ) in
-        let open Serde.Ser in
-        fun t ->
-          fun ctx ->
-          record ctx "t" 1 (fun ctx ->
-            let* () = field ctx "id" (int t.id) in
-            Ok ())
-      ;;
-  
-      let _ = serialize_t
-  
       open Caqti_request.Infix
       open Caqti_type.Std
-  
-      type row = t list [@@deriving serialize, deserialize]
-  
-      include struct
-        let _ = fun (_ : row) -> ()
-  
-        let serialize_row =
-          let ( let* ) = Stdlib.Result.bind in
-          let _ = ( let* ) in
-          let open Serde.Ser in
-          fun t -> fun ctx -> (s (list (s serialize_t))) t ctx
-        ;;
-  
-        let _ = serialize_row
-  
-        open! Serde
-  
-        let deserialize_row =
-          let ( let* ) = Stdlib.Result.bind in
-          let _ = ( let* ) in
-          let open Serde.De in
-          fun ctx -> (d (list (d deserialize_t))) ctx
-        ;;
-  
-        let _ = deserialize_row
-      end [@@ocaml.doc "@inline"] [@@merlin.hide]
   
       module Fields = struct
         let id = "id"
         let _ = id
-  
-        type id = int [@@deriving deserialize, serialize]
-  
-        include struct
-          let _ = fun (_ : id) -> ()
-  
-          open! Serde
-  
-          let deserialize_id =
-            let ( let* ) = Stdlib.Result.bind in
-            let _ = ( let* ) in
-            let open Serde.De in
-            fun ctx -> int ctx
-          ;;
-  
-          let _ = deserialize_id
-  
-          let serialize_id =
-            let ( let* ) = Stdlib.Result.bind in
-            let _ = ( let* ) in
-            let open Serde.Ser in
-            fun t -> fun ctx -> int t ctx
-          ;;
-  
-          let _ = serialize_id
-        end [@@ocaml.doc "@inline"] [@@merlin.hide]
       end
   
       module Params = struct
-        let id id = DBCaml.Params.Values.integer id
+        let id = Caqti_type.Std.int
         let _ = id
       end
   
       module Table = struct
-        let drop db = (unit ->. unit) @@ "DROP TABLE IF EXISTS users"
+        let drop = (unit ->. unit) @@ "DROP TABLE IF EXISTS users"
         let _ = drop
-        let create db = (unit ->. unit) @@ "CREATE TABLE users (id INTEGER NOT NULL) strict"
+        let drop db = Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.exec drop ()) db
+        let _ = drop
+        let create = (unit ->. unit) @@ "CREATE TABLE users (id INTEGER NOT NULL)"
+        let _ = create
+        let create db = Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.exec create ()) db
         let _ = create
       end
+  
+      let relation = "users"
+      let _ = relation
+  
+      let record =
+        let record id = { id } in
+        product record @@ proj Params.id (fun record -> record.id) proj_end
+      ;;
+  
+      let _ = record
+  
+      let insert ~id db =
+        let query = (Params.id ->! record) @@ "INSERT INTO users (id) VALUES (?) RETURNING *" in
+        Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.find query id) db
+      ;;
+  
+      let _ = insert
     end [@@ocaml.doc "@inline"] [@@merlin.hide]
   end
   
@@ -625,170 +391,50 @@ Pretty print the file
   
       let _ = fun (_ : t) -> ()
   
-      open! Serde
-  
-      let deserialize_t =
-        let ( let* ) = Stdlib.Result.bind in
-        let _ = ( let* ) in
-        let open Serde.De in
-        fun ctx ->
-          record ctx "t" 2 (fun ctx ->
-            let field_visitor =
-              let visit_string _ctx str =
-                match str with
-                | "name" -> Ok `name
-                | "id" -> Ok `id
-                | _ -> Ok `invalid_tag
-              in
-              let visit_int _ctx str =
-                match str with
-                | 0 -> Ok `name
-                | 1 -> Ok `id
-                | _ -> Ok `invalid_tag
-              in
-              Visitor.make ~visit_string ~visit_int ()
-            in
-            let id = ref None in
-            let name = ref None in
-            let rec read_fields () =
-              let* tag = next_field ctx field_visitor in
-              match tag with
-              | Some `name ->
-                let* v = field ctx "name" string in
-                name := Some v;
-                read_fields ()
-              | Some `id ->
-                let* v = field ctx "id" int in
-                id := Some v;
-                read_fields ()
-              | Some `invalid_tag ->
-                let* () = ignore_any ctx in
-                read_fields ()
-              | None -> Ok ()
-            in
-            let* () = read_fields () in
-            let* id = Stdlib.Option.to_result ~none:(`Msg "missing field \"id\" (\"id\")") !id in
-            let* name = Stdlib.Option.to_result ~none:(`Msg "missing field \"name\" (\"name\")") !name in
-            Ok { name; id })
-      ;;
-  
-      let _ = deserialize_t
-  
-      let serialize_t =
-        let ( let* ) = Stdlib.Result.bind in
-        let _ = ( let* ) in
-        let open Serde.Ser in
-        fun t ->
-          fun ctx ->
-          record ctx "t" 2 (fun ctx ->
-            let* () = field ctx "id" (int t.id) in
-            let* () = field ctx "name" (string t.name) in
-            Ok ())
-      ;;
-  
-      let _ = serialize_t
-  
       open Caqti_request.Infix
       open Caqti_type.Std
-  
-      type row = t list [@@deriving serialize, deserialize]
-  
-      include struct
-        let _ = fun (_ : row) -> ()
-  
-        let serialize_row =
-          let ( let* ) = Stdlib.Result.bind in
-          let _ = ( let* ) in
-          let open Serde.Ser in
-          fun t -> fun ctx -> (s (list (s serialize_t))) t ctx
-        ;;
-  
-        let _ = serialize_row
-  
-        open! Serde
-  
-        let deserialize_row =
-          let ( let* ) = Stdlib.Result.bind in
-          let _ = ( let* ) in
-          let open Serde.De in
-          fun ctx -> (d (list (d deserialize_t))) ctx
-        ;;
-  
-        let _ = deserialize_row
-      end [@@ocaml.doc "@inline"] [@@merlin.hide]
   
       module Fields = struct
         let id = "id"
         let _ = id
         let name = "name"
         let _ = name
-  
-        type id = int [@@deriving deserialize, serialize]
-  
-        include struct
-          let _ = fun (_ : id) -> ()
-  
-          open! Serde
-  
-          let deserialize_id =
-            let ( let* ) = Stdlib.Result.bind in
-            let _ = ( let* ) in
-            let open Serde.De in
-            fun ctx -> int ctx
-          ;;
-  
-          let _ = deserialize_id
-  
-          let serialize_id =
-            let ( let* ) = Stdlib.Result.bind in
-            let _ = ( let* ) in
-            let open Serde.Ser in
-            fun t -> fun ctx -> int t ctx
-          ;;
-  
-          let _ = serialize_id
-        end [@@ocaml.doc "@inline"] [@@merlin.hide]
-  
-        type name = string [@@deriving deserialize, serialize]
-  
-        include struct
-          let _ = fun (_ : name) -> ()
-  
-          open! Serde
-  
-          let deserialize_name =
-            let ( let* ) = Stdlib.Result.bind in
-            let _ = ( let* ) in
-            let open Serde.De in
-            fun ctx -> string ctx
-          ;;
-  
-          let _ = deserialize_name
-  
-          let serialize_name =
-            let ( let* ) = Stdlib.Result.bind in
-            let _ = ( let* ) in
-            let open Serde.Ser in
-            fun t -> fun ctx -> string t ctx
-          ;;
-  
-          let _ = serialize_name
-        end [@@ocaml.doc "@inline"] [@@merlin.hide]
       end
   
       module Params = struct
-        let id id = DBCaml.Params.Values.integer id
+        let id = Caqti_type.Std.int
         let _ = id
-        let name name = DBCaml.Params.Values.text name
+        let name = Caqti_type.Std.string
         let _ = name
       end
   
       module Table = struct
-        let drop db = (unit ->. unit) @@ "DROP TABLE IF EXISTS users"
+        let drop = (unit ->. unit) @@ "DROP TABLE IF EXISTS users"
         let _ = drop
-        let create db = (unit ->. unit) @@ "CREATE TABLE users (id INTEGER NOT NULL, name TEXT NOT NULL) strict"
+        let drop db = Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.exec drop ()) db
+        let _ = drop
+        let create = (unit ->. unit) @@ "CREATE TABLE users (id INTEGER NOT NULL, name TEXT NOT NULL)"
+        let _ = create
+        let create db = Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.exec create ()) db
         let _ = create
       end
+  
+      let relation = "users"
+      let _ = relation
+  
+      let record =
+        let record id name = { id; name } in
+        product record @@ proj Params.id (fun record -> record.id) (proj Params.name (fun record -> record.name) proj_end)
+      ;;
+  
+      let _ = record
+  
+      let insert ~id ~name db =
+        let query = (t2 Params.id Params.name ->! record) @@ "INSERT INTO users (id, name) VALUES (?, ?) RETURNING *" in
+        Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.find query (id, name)) db
+      ;;
+  
+      let _ = insert
     end [@@ocaml.doc "@inline"] [@@merlin.hide]
   end
   
@@ -898,416 +544,6 @@ Pretty print the file
   
     let raw = "SELECT User.name, $2 FROM User WHERE User.id = $1"
   end [@warning "-32"]
-< language: ocaml
-
-  $ pp_query_caqti ./lib/foreign.ml | ocamlformat --impl -
-  module User = struct
-    type t =
-      { id : int [@primary_key { autoincrement = true }]
-      ; name : string
-      }
-    [@@deriving table { name = "users" }]
-  
-    include struct
-      [@@@ocaml.warning "-60"]
-  
-      let _ = fun (_ : t) -> ()
-  
-      open! Serde
-  
-      let deserialize_t =
-        let ( let* ) = Stdlib.Result.bind in
-        let _ = ( let* ) in
-        let open Serde.De in
-        fun ctx ->
-          record ctx "t" 2 (fun ctx ->
-            let field_visitor =
-              let visit_string _ctx str =
-                match str with
-                | "name" -> Ok `name
-                | "id" -> Ok `id
-                | _ -> Ok `invalid_tag
-              in
-              let visit_int _ctx str =
-                match str with
-                | 0 -> Ok `name
-                | 1 -> Ok `id
-                | _ -> Ok `invalid_tag
-              in
-              Visitor.make ~visit_string ~visit_int ()
-            in
-            let id = ref None in
-            let name = ref None in
-            let rec read_fields () =
-              let* tag = next_field ctx field_visitor in
-              match tag with
-              | Some `name ->
-                let* v = field ctx "name" string in
-                name := Some v;
-                read_fields ()
-              | Some `id ->
-                let* v = field ctx "id" int in
-                id := Some v;
-                read_fields ()
-              | Some `invalid_tag ->
-                let* () = ignore_any ctx in
-                read_fields ()
-              | None -> Ok ()
-            in
-            let* () = read_fields () in
-            let* id = Stdlib.Option.to_result ~none:(`Msg "missing field \"id\" (\"id\")") !id in
-            let* name = Stdlib.Option.to_result ~none:(`Msg "missing field \"name\" (\"name\")") !name in
-            Ok { name; id })
-      ;;
-  
-      let _ = deserialize_t
-  
-      let serialize_t =
-        let ( let* ) = Stdlib.Result.bind in
-        let _ = ( let* ) in
-        let open Serde.Ser in
-        fun t ->
-          fun ctx ->
-          record ctx "t" 2 (fun ctx ->
-            let* () = field ctx "id" (int t.id) in
-            let* () = field ctx "name" (string t.name) in
-            Ok ())
-      ;;
-  
-      let _ = serialize_t
-  
-      open Caqti_request.Infix
-      open Caqti_type.Std
-  
-      type row = t list [@@deriving serialize, deserialize]
-  
-      include struct
-        let _ = fun (_ : row) -> ()
-  
-        let serialize_row =
-          let ( let* ) = Stdlib.Result.bind in
-          let _ = ( let* ) in
-          let open Serde.Ser in
-          fun t -> fun ctx -> (s (list (s serialize_t))) t ctx
-        ;;
-  
-        let _ = serialize_row
-  
-        open! Serde
-  
-        let deserialize_row =
-          let ( let* ) = Stdlib.Result.bind in
-          let _ = ( let* ) in
-          let open Serde.De in
-          fun ctx -> (d (list (d deserialize_t))) ctx
-        ;;
-  
-        let _ = deserialize_row
-      end [@@ocaml.doc "@inline"] [@@merlin.hide]
-  
-      module Fields = struct
-        let id = "id"
-        let _ = id
-        let name = "name"
-        let _ = name
-  
-        type id = int [@@deriving deserialize, serialize]
-  
-        include struct
-          let _ = fun (_ : id) -> ()
-  
-          open! Serde
-  
-          let deserialize_id =
-            let ( let* ) = Stdlib.Result.bind in
-            let _ = ( let* ) in
-            let open Serde.De in
-            fun ctx -> int ctx
-          ;;
-  
-          let _ = deserialize_id
-  
-          let serialize_id =
-            let ( let* ) = Stdlib.Result.bind in
-            let _ = ( let* ) in
-            let open Serde.Ser in
-            fun t -> fun ctx -> int t ctx
-          ;;
-  
-          let _ = serialize_id
-        end [@@ocaml.doc "@inline"] [@@merlin.hide]
-  
-        type name = string [@@deriving deserialize, serialize]
-  
-        include struct
-          let _ = fun (_ : name) -> ()
-  
-          open! Serde
-  
-          let deserialize_name =
-            let ( let* ) = Stdlib.Result.bind in
-            let _ = ( let* ) in
-            let open Serde.De in
-            fun ctx -> string ctx
-          ;;
-  
-          let _ = deserialize_name
-  
-          let serialize_name =
-            let ( let* ) = Stdlib.Result.bind in
-            let _ = ( let* ) in
-            let open Serde.Ser in
-            fun t -> fun ctx -> string t ctx
-          ;;
-  
-          let _ = serialize_name
-        end [@@ocaml.doc "@inline"] [@@merlin.hide]
-      end
-  
-      module Params = struct
-        let id id = DBCaml.Params.Values.integer id
-        let _ = id
-        let name name = DBCaml.Params.Values.text name
-        let _ = name
-      end
-  
-      module Table = struct
-        let drop db = (unit ->. unit) @@ "DROP TABLE IF EXISTS users"
-        let _ = drop
-  
-        let create db =
-          (unit ->. unit) @@ "CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL) strict"
-        ;;
-  
-        let _ = create
-      end
-    end [@@ocaml.doc "@inline"] [@@merlin.hide]
-  end
-  
-  module Post = struct
-    type t =
-      { id : int [@primary_key { autoincrement = true }]
-      ; user_id : int [@references User.id { on_delete = Cascade }]
-      ; content : string
-      }
-    [@@deriving table { name = "posts" }]
-  
-    include struct
-      [@@@ocaml.warning "-60"]
-  
-      let _ = fun (_ : t) -> ()
-  
-      open! Serde
-  
-      let deserialize_t =
-        let ( let* ) = Stdlib.Result.bind in
-        let _ = ( let* ) in
-        let open Serde.De in
-        fun ctx ->
-          record ctx "t" 3 (fun ctx ->
-            let field_visitor =
-              let visit_string _ctx str =
-                match str with
-                | "content" -> Ok `content
-                | "user_id" -> Ok `user_id
-                | "id" -> Ok `id
-                | _ -> Ok `invalid_tag
-              in
-              let visit_int _ctx str =
-                match str with
-                | 0 -> Ok `content
-                | 1 -> Ok `user_id
-                | 2 -> Ok `id
-                | _ -> Ok `invalid_tag
-              in
-              Visitor.make ~visit_string ~visit_int ()
-            in
-            let id = ref None in
-            let user_id = ref None in
-            let content = ref None in
-            let rec read_fields () =
-              let* tag = next_field ctx field_visitor in
-              match tag with
-              | Some `content ->
-                let* v = field ctx "content" string in
-                content := Some v;
-                read_fields ()
-              | Some `user_id ->
-                let* v = field ctx "user_id" int in
-                user_id := Some v;
-                read_fields ()
-              | Some `id ->
-                let* v = field ctx "id" int in
-                id := Some v;
-                read_fields ()
-              | Some `invalid_tag ->
-                let* () = ignore_any ctx in
-                read_fields ()
-              | None -> Ok ()
-            in
-            let* () = read_fields () in
-            let* id = Stdlib.Option.to_result ~none:(`Msg "missing field \"id\" (\"id\")") !id in
-            let* user_id = Stdlib.Option.to_result ~none:(`Msg "missing field \"user_id\" (\"user_id\")") !user_id in
-            let* content = Stdlib.Option.to_result ~none:(`Msg "missing field \"content\" (\"content\")") !content in
-            Ok { content; user_id; id })
-      ;;
-  
-      let _ = deserialize_t
-  
-      let serialize_t =
-        let ( let* ) = Stdlib.Result.bind in
-        let _ = ( let* ) in
-        let open Serde.Ser in
-        fun t ->
-          fun ctx ->
-          record ctx "t" 3 (fun ctx ->
-            let* () = field ctx "id" (int t.id) in
-            let* () = field ctx "user_id" (int t.user_id) in
-            let* () = field ctx "content" (string t.content) in
-            Ok ())
-      ;;
-  
-      let _ = serialize_t
-  
-      open Caqti_request.Infix
-      open Caqti_type.Std
-  
-      type row = t list [@@deriving serialize, deserialize]
-  
-      include struct
-        let _ = fun (_ : row) -> ()
-  
-        let serialize_row =
-          let ( let* ) = Stdlib.Result.bind in
-          let _ = ( let* ) in
-          let open Serde.Ser in
-          fun t -> fun ctx -> (s (list (s serialize_t))) t ctx
-        ;;
-  
-        let _ = serialize_row
-  
-        open! Serde
-  
-        let deserialize_row =
-          let ( let* ) = Stdlib.Result.bind in
-          let _ = ( let* ) in
-          let open Serde.De in
-          fun ctx -> (d (list (d deserialize_t))) ctx
-        ;;
-  
-        let _ = deserialize_row
-      end [@@ocaml.doc "@inline"] [@@merlin.hide]
-  
-      module Fields = struct
-        let id = "id"
-        let _ = id
-        let user_id = "user_id"
-        let _ = user_id
-        let content = "content"
-        let _ = content
-  
-        type id = int [@@deriving deserialize, serialize]
-  
-        include struct
-          let _ = fun (_ : id) -> ()
-  
-          open! Serde
-  
-          let deserialize_id =
-            let ( let* ) = Stdlib.Result.bind in
-            let _ = ( let* ) in
-            let open Serde.De in
-            fun ctx -> int ctx
-          ;;
-  
-          let _ = deserialize_id
-  
-          let serialize_id =
-            let ( let* ) = Stdlib.Result.bind in
-            let _ = ( let* ) in
-            let open Serde.Ser in
-            fun t -> fun ctx -> int t ctx
-          ;;
-  
-          let _ = serialize_id
-        end [@@ocaml.doc "@inline"] [@@merlin.hide]
-  
-        type user_id = int [@@deriving deserialize, serialize]
-  
-        include struct
-          let _ = fun (_ : user_id) -> ()
-  
-          open! Serde
-  
-          let deserialize_user_id =
-            let ( let* ) = Stdlib.Result.bind in
-            let _ = ( let* ) in
-            let open Serde.De in
-            fun ctx -> int ctx
-          ;;
-  
-          let _ = deserialize_user_id
-  
-          let serialize_user_id =
-            let ( let* ) = Stdlib.Result.bind in
-            let _ = ( let* ) in
-            let open Serde.Ser in
-            fun t -> fun ctx -> int t ctx
-          ;;
-  
-          let _ = serialize_user_id
-        end [@@ocaml.doc "@inline"] [@@merlin.hide]
-  
-        type content = string [@@deriving deserialize, serialize]
-  
-        include struct
-          let _ = fun (_ : content) -> ()
-  
-          open! Serde
-  
-          let deserialize_content =
-            let ( let* ) = Stdlib.Result.bind in
-            let _ = ( let* ) in
-            let open Serde.De in
-            fun ctx -> string ctx
-          ;;
-  
-          let _ = deserialize_content
-  
-          let serialize_content =
-            let ( let* ) = Stdlib.Result.bind in
-            let _ = ( let* ) in
-            let open Serde.Ser in
-            fun t -> fun ctx -> string t ctx
-          ;;
-  
-          let _ = serialize_content
-        end [@@ocaml.doc "@inline"] [@@merlin.hide]
-      end
-  
-      module Params = struct
-        let id id = DBCaml.Params.Values.integer id
-        let _ = id
-        let user_id user_id = DBCaml.Params.Values.integer user_id
-        let _ = user_id
-        let content content = DBCaml.Params.Values.text content
-        let _ = content
-      end
-  
-      module Table = struct
-        let drop db = (unit ->. unit) @@ "DROP TABLE IF EXISTS posts"
-        let _ = drop
-  
-        let create db =
-          (unit ->. unit)
-          @@ "CREATE TABLE posts (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER REFERENCES users (id) ON DELETE \
-              CASCADE, content TEXT NOT NULL) strict"
-        ;;
-  
-        let _ = create
-      end
-    end [@@ocaml.doc "@inline"] [@@merlin.hide]
-  end
 < language: ocaml
 
   $ pp_query_caqti ./lib/invalid_model.ml | ocamlformat --impl -
@@ -1634,178 +870,230 @@ Pretty print the file
   
       let _ = fun (_ : t) -> ()
   
-      open! Serde
-  
-      let deserialize_t =
-        let ( let* ) = Stdlib.Result.bind in
-        let _ = ( let* ) in
-        let open Serde.De in
-        fun ctx ->
-          record ctx "t" 2 (fun ctx ->
-            let field_visitor =
-              let visit_string _ctx str =
-                match str with
-                | "optional" -> Ok `optional
-                | "id" -> Ok `id
-                | _ -> Ok `invalid_tag
-              in
-              let visit_int _ctx str =
-                match str with
-                | 0 -> Ok `optional
-                | 1 -> Ok `id
-                | _ -> Ok `invalid_tag
-              in
-              Visitor.make ~visit_string ~visit_int ()
-            in
-            let id = ref None in
-            let optional = ref None in
-            let rec read_fields () =
-              let* tag = next_field ctx field_visitor in
-              match tag with
-              | Some `optional ->
-                let* v = field ctx "optional" (d (option string)) in
-                optional := Some v;
-                read_fields ()
-              | Some `id ->
-                let* v = field ctx "id" int in
-                id := Some v;
-                read_fields ()
-              | Some `invalid_tag ->
-                let* () = ignore_any ctx in
-                read_fields ()
-              | None -> Ok ()
-            in
-            let* () = read_fields () in
-            let* id = Stdlib.Option.to_result ~none:(`Msg "missing field \"id\" (\"id\")") !id in
-            let optional =
-              match !optional with
-              | Some opt -> opt
-              | None -> None
-            in
-            Ok { optional; id })
-      ;;
-  
-      let _ = deserialize_t
-  
-      let serialize_t =
-        let ( let* ) = Stdlib.Result.bind in
-        let _ = ( let* ) in
-        let open Serde.Ser in
-        fun t ->
-          fun ctx ->
-          record ctx "t" 2 (fun ctx ->
-            let* () = field ctx "id" (int t.id) in
-            let* () = field ctx "optional" ((s (option string)) t.optional) in
-            Ok ())
-      ;;
-  
-      let _ = serialize_t
-  
       open Caqti_request.Infix
       open Caqti_type.Std
-  
-      type row = t list [@@deriving serialize, deserialize]
-  
-      include struct
-        let _ = fun (_ : row) -> ()
-  
-        let serialize_row =
-          let ( let* ) = Stdlib.Result.bind in
-          let _ = ( let* ) in
-          let open Serde.Ser in
-          fun t -> fun ctx -> (s (list (s serialize_t))) t ctx
-        ;;
-  
-        let _ = serialize_row
-  
-        open! Serde
-  
-        let deserialize_row =
-          let ( let* ) = Stdlib.Result.bind in
-          let _ = ( let* ) in
-          let open Serde.De in
-          fun ctx -> (d (list (d deserialize_t))) ctx
-        ;;
-  
-        let _ = deserialize_row
-      end [@@ocaml.doc "@inline"] [@@merlin.hide]
   
       module Fields = struct
         let id = "id"
         let _ = id
         let optional = "optional"
         let _ = optional
-  
-        type id = int [@@deriving deserialize, serialize]
-  
-        include struct
-          let _ = fun (_ : id) -> ()
-  
-          open! Serde
-  
-          let deserialize_id =
-            let ( let* ) = Stdlib.Result.bind in
-            let _ = ( let* ) in
-            let open Serde.De in
-            fun ctx -> int ctx
-          ;;
-  
-          let _ = deserialize_id
-  
-          let serialize_id =
-            let ( let* ) = Stdlib.Result.bind in
-            let _ = ( let* ) in
-            let open Serde.Ser in
-            fun t -> fun ctx -> int t ctx
-          ;;
-  
-          let _ = serialize_id
-        end [@@ocaml.doc "@inline"] [@@merlin.hide]
-  
-        type optional = string option [@@deriving deserialize, serialize]
-  
-        include struct
-          let _ = fun (_ : optional) -> ()
-  
-          open! Serde
-  
-          let deserialize_optional =
-            let ( let* ) = Stdlib.Result.bind in
-            let _ = ( let* ) in
-            let open Serde.De in
-            fun ctx -> (d (option string)) ctx
-          ;;
-  
-          let _ = deserialize_optional
-  
-          let serialize_optional =
-            let ( let* ) = Stdlib.Result.bind in
-            let _ = ( let* ) in
-            let open Serde.Ser in
-            fun t -> fun ctx -> (s (option string)) t ctx
-          ;;
-  
-          let _ = serialize_optional
-        end [@@ocaml.doc "@inline"] [@@merlin.hide]
       end
   
       module Params = struct
-        let id id = DBCaml.Params.Values.integer id
+        let id = Caqti_type.Std.int
         let _ = id
-        let optional optional = DBCaml.Params.Values.text_opt optional
+  
+        let optional =
+          let open Caqti_type.Std in
+          option string
+        ;;
+  
         let _ = optional
       end
   
       module Table = struct
-        let drop db = (unit ->. unit) @@ "DROP TABLE IF EXISTS optional_field"
+        let drop = (unit ->. unit) @@ "DROP TABLE IF EXISTS optional_field"
+        let _ = drop
+        let drop db = Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.exec drop ()) db
         let _ = drop
   
-        let create db =
-          (unit ->. unit) @@ "CREATE TABLE optional_field (id INTEGER PRIMARY KEY AUTOINCREMENT, optional TEXT ) strict"
+        let create =
+          (unit ->. unit)
+          @@ "CREATE TABLE optional_field (id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY, optional TEXT )"
         ;;
   
         let _ = create
+        let create db = Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.exec create ()) db
+        let _ = create
       end
+  
+      let relation = "optional_field"
+      let _ = relation
+  
+      let record =
+        let record id optional = { id; optional } in
+        product record
+        @@ proj Params.id (fun record -> record.id) (proj Params.optional (fun record -> record.optional) proj_end)
+      ;;
+  
+      let _ = record
+  
+      let insert ?optional db =
+        let query = (Params.optional ->! record) @@ "INSERT INTO optional_field (optional) VALUES (?) RETURNING *" in
+        Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.find query optional) db
+      ;;
+  
+      let _ = insert
     end [@@ocaml.doc "@inline"] [@@merlin.hide]
   end
 < language: ocaml
+
+  $ pp_query_caqti ./lib/foreign.ml | ocamlformat --impl -
+  module_param: User.t
+  type 'a unfetched = [ `unfetched of 'a ]
+  type 'a fetched = [ `fetched of 'a ]
+  
+  type ('id, 'model) fetch =
+    [ 'id unfetched
+    | 'model fetched
+    ]
+  
+  module User = struct
+    type t =
+      { id : int [@primary_key { autoincrement = true }]
+      ; name : string
+      }
+    [@@deriving table { name = "users" }]
+  
+    include struct
+      [@@@ocaml.warning "-60"]
+  
+      let _ = fun (_ : t) -> ()
+  
+      open Caqti_request.Infix
+      open Caqti_type.Std
+  
+      module Fields = struct
+        let id = "id"
+        let _ = id
+        let name = "name"
+        let _ = name
+      end
+  
+      module Params = struct
+        let id = Caqti_type.Std.int
+        let _ = id
+        let name = Caqti_type.Std.string
+        let _ = name
+      end
+  
+      module Table = struct
+        let drop = (unit ->. unit) @@ "DROP TABLE IF EXISTS users"
+        let _ = drop
+        let drop db = Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.exec drop ()) db
+        let _ = drop
+  
+        let create =
+          (unit ->. unit)
+          @@ "CREATE TABLE users (id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY, name TEXT NOT NULL)"
+        ;;
+  
+        let _ = create
+        let create db = Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.exec create ()) db
+        let _ = create
+      end
+  
+      let relation = "users"
+      let _ = relation
+  
+      let record =
+        let record id name = { id; name } in
+        product record @@ proj Params.id (fun record -> record.id) (proj Params.name (fun record -> record.name) proj_end)
+      ;;
+  
+      let _ = record
+  
+      let insert ~name db =
+        let query = (Params.name ->! record) @@ "INSERT INTO users (name) VALUES (?) RETURNING *" in
+        Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.find query name) db
+      ;;
+  
+      let _ = insert
+    end [@@ocaml.doc "@inline"] [@@merlin.hide]
+  
+    module Model = struct
+      type user = t
+      type t = (int, user) fetch
+  
+      let fetch db (model : t) =
+        ((match model with
+          | `unfetched id -> failwith "TODO"
+          | `fetched user -> user)
+         : user)
+      ;;
+    end
+  end
+  
+  module Post = struct
+    type t =
+      { id : int [@primary_key { autoincrement = true }]
+      ; user : User.Model.t
+      ; content : string
+      }
+    [@@deriving table { name = "posts" }]
+  
+    include struct
+      [@@@ocaml.warning "-60"]
+  
+      let _ = fun (_ : t) -> ()
+  
+      open Caqti_request.Infix
+      open Caqti_type.Std
+  
+      module Fields = struct
+        let id = "id"
+        let _ = id
+        let user = "user"
+        let _ = user
+        let content = "content"
+        let _ = content
+      end
+  
+      module Params = struct
+        let id = Caqti_type.Std.int
+        let _ = id
+        let user = User.Params.t user
+        let _ = user
+        let content = Caqti_type.Std.string
+        let _ = content
+      end
+  
+      module Table = struct
+        let drop = (unit ->. unit) @@ "DROP TABLE IF EXISTS posts"
+        let _ = drop
+        let drop db = Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.exec drop ()) db
+        let _ = drop
+  
+        let create =
+          (unit ->. unit)
+          @@ "CREATE TABLE posts (id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY, user INTEGER NOT NULL, content \
+              TEXT NOT NULL)"
+        ;;
+  
+        let _ = create
+        let create db = Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.exec create ()) db
+        let _ = create
+      end
+  
+      let relation = "posts"
+      let _ = relation
+  
+      let record =
+        let record id user content = { id; user; content } in
+        product record
+        @@ proj
+             Params.id
+             (fun record -> record.id)
+             (proj Params.user (fun record -> record.user) (proj Params.content (fun record -> record.content) proj_end))
+      ;;
+  
+      let _ = record
+  
+      let insert ~user ~content db =
+        let query =
+          (t2 Params.user Params.content ->! record) @@ "INSERT INTO posts (user, content) VALUES (?, ?) RETURNING *"
+        in
+        Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.find query (user, content)) db
+      ;;
+  
+      let _ = insert
+    end [@@ocaml.doc "@inline"] [@@merlin.hide]
+  
+    let user_name db t =
+      let user = User.Model.fetch db t.user in
+      user.name
+    ;;
+  end
+< language: ocaml
+

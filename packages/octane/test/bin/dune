@@ -15,3 +15,11 @@
  (libraries ppxlib ppx_octane_caqti)
  (preprocess
   (pps ppx_octane_caqti)))
+
+(test
+ (name typecheck_caqti)
+ (modules typecheck_caqti)
+ (package ppx_octane_caqti)
+ (libraries ppxlib ppx_octane_caqti caqti caqti-eio.unix)
+ (preprocess
+  (pps ppx_octane_caqti)))

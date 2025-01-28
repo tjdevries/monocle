@@ -1,7 +1,7 @@
 open Core
 open Ppxlib
 open Ast_builder
-module Database = Drivers.Sqlite
+module Database = Drivers.Postgres
 
 module Util = struct
   let throw ~loc fmt =
@@ -73,6 +73,9 @@ module TableField = struct
       | Ldot (Ldot (Lident m, "Fields"), f) ->
         (* Util.throw ~loc "create_field - ldot" *)
         "INTEGER"
+      | Ldot (Ldot (Lident m, "Model"), f) ->
+        (* Util.throw ~loc "create_field - ldot" *)
+        "INTEGER"
       | _ -> Util.throw ~loc "TODO: create_field - unknown type"
     end
     | _ -> Util.throw ~loc "Unknown type: coretype_to_create_field"
@@ -84,7 +87,8 @@ module TableField = struct
     let column_type = coretype_to_create_field ~loc t.ty in
     let column_attributes =
       match t.nullable, t.kind with
-      | _, FieldKind.PrimaryKey { autoincrement = true } -> "PRIMARY KEY AUTOINCREMENT"
+      | _, FieldKind.PrimaryKey { autoincrement = true } ->
+        "GENERATED ALWAYS AS IDENTITY PRIMARY KEY"
       | false, FieldKind.PrimaryKey _ -> "PRIMARY KEY NOT NULL"
       | true, FieldKind.PrimaryKey _ -> "PRIMARY KEY"
       | _, FieldKind.ForeignKey { table; column; on_delete } ->
@@ -98,6 +102,10 @@ module TableField = struct
 
   (* AST Helpers *)
   let ename { loc; name; _ } = Default.evar ~loc name.txt
+
+  let params_field ~loc { name; _ } =
+    Default.pexp_ident ~loc (Loc.make ~loc (Ldot (Longident.Lident "Params", name.txt)))
+  ;;
 end
 
 let make_fields_from_type payload =
@@ -115,10 +123,10 @@ let args () = Deriving.Args.(empty +> arg "name" (estring __))
 let get_field_constructor ~loc ename pld_type =
   let match_lident name optional =
     match name, optional with
-    | "int", true -> [%expr DBCaml.Params.Values.integer_opt [%e ename]]
-    | "int", false -> [%expr DBCaml.Params.Values.integer [%e ename]]
-    | "string", true -> [%expr DBCaml.Params.Values.text_opt [%e ename]]
-    | "string", false -> [%expr DBCaml.Params.Values.text [%e ename]]
+    | "int", true -> [%expr Caqti_type.Std.(option int)]
+    | "int", false -> [%expr Caqti_type.Std.int]
+    | "string", true -> [%expr Caqti_type.Std.(option string)]
+    | "string", false -> [%expr Caqti_type.Std.string]
     | lident, _ -> Util.throw ~loc "TODO: field_params - unknown builtin type: %s" lident
   in
   let rec coretype_to_expr ty optional =
@@ -128,6 +136,9 @@ let get_field_constructor ~loc ename pld_type =
       match txt with
       | Lident ident -> match_lident ident optional
       | Ldot (Ldot (Lident m, "Fields"), f) ->
+        let module_param = Gen.module_param ~loc m f in
+        [%expr [%e module_param] [%e ename]]
+      | Ldot (Ldot (Lident m, "Model"), f) ->
         let module_param = Gen.module_param ~loc m f in
         [%expr [%e module_param] [%e ename]]
       | Ldot _ -> Util.throw ~loc "TODO: unknown ldot"
@@ -146,10 +157,11 @@ let generate_fields_module ~loc (fields : TableField.t list) =
       [%stri let [%p pat] = [%e str]])
   in
   let field_types =
-    List.map fields ~f:(fun { loc; name; label_declaration; _ } ->
-      let attrs = [ Attr.make_deriving_attr ~loc [ "deserialize"; "serialize" ] ] in
-      let type_decl = Ast_helper.Type.mk name ~manifest:label_declaration.pld_type ~attrs in
-      Ast_helper.Str.type_ Recursive [ type_decl ])
+    []
+    (* List.map fields ~f:(fun { loc; name; label_declaration; _ } -> *)
+    (*   let attrs = [ Attr.make_deriving_attr ~loc [ "deserialize"; "serialize" ] ] in *)
+    (*   let type_decl = Ast_helper.Type.mk name ~manifest:label_declaration.pld_type ~attrs in *)
+    (*   Ast_helper.Str.type_ Recursive [ type_decl ]) *)
   in
   Ast_helper.Mod.structure (field_names @ field_types)
 ;;
@@ -157,11 +169,10 @@ let generate_fields_module ~loc (fields : TableField.t list) =
 let generate_params_module ~loc (fields : TableField.t list) =
   let field_params =
     TableField.map fields ~f:(fun ~loc field ->
-      let pat = Default.ppat_var ~loc field.name in
       let ename = TableField.ename field in
       let param_name = Default.ppat_var ~loc field.name in
       let constructor = get_field_constructor ~loc ename field.ty in
-      [%stri let [%p param_name] = fun [%p pat] -> [%e constructor]])
+      [%stri let [%p param_name] = [%e constructor]])
   in
   Ast_helper.Mod.structure field_params
 ;;
@@ -169,12 +180,7 @@ let generate_params_module ~loc (fields : TableField.t list) =
 let generate_insert_function ~loc name (fields : TableField.t list) =
   let fields = List.filter fields ~f:(fun field -> FieldKind.is_fillable field.kind) in
   let params =
-    TableField.map fields ~f:(fun ~loc field ->
-      let ename = TableField.ename field in
-      let param_ident = Loc.make ~loc (Ldot (Lident "Params", Loc.txt field.name)) in
-      let param = Default.pexp_ident ~loc param_ident in
-      [%expr [%e param] [%e ename]])
-    |> Default.elist ~loc
+    TableField.map fields ~f:(fun ~loc field -> TableField.ename field) |> Default.pexp_tuple ~loc
   in
   let columns =
     TableField.map fields ~f:(fun ~loc field -> field.name.txt) |> String.concat ~sep:", "
@@ -184,13 +190,22 @@ let generate_insert_function ~loc name (fields : TableField.t list) =
     [%string "INSERT INTO %{name} (%{columns}) VALUES (%{placeholders}) RETURNING *"]
     |> Default.estring ~loc
   in
+  let left =
+    match fields with
+    | [] -> [%expr unit]
+    | [ field ] -> Default.pexp_apply ~loc (TableField.params_field ~loc field) []
+    | _ ->
+      let length = List.length fields in
+      let init = CaqtiHelper.get_caqti_t ~loc length in
+      Default.pexp_apply ~loc init
+      @@ List.map fields ~f:(fun field -> Nolabel, TableField.params_field ~loc field)
+  in
+  (* let right = [%expr int] in *)
+  let caqti_query = [%expr ([%e left] ->! record) @@ [%e query]] in
   let body =
     [%expr
-      match DBCaml.query db ~params:[%e params] ~query:[%e query] ~deserializer:deserialize_row with
-      | Ok [ t ] -> Ok t
-      | Ok [] -> Error (`msg "empty: Should have returned one item")
-      | Ok _ -> Error (`msg "empty: Should not return more than one item")
-      | Error err -> Error err]
+      let query = [%e caqti_query] in
+      Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.find query [%e params]) db]
   in
   let body = Gen.make_positional_fun ~loc "db" body in
   List.fold_right fields ~init:body ~f:(fun { name; nullable; _ } acc ->
@@ -205,6 +220,38 @@ let generate_serializers ~ctxt type_declarations =
   deser @ ser
 ;;
 
+let generate_caqti_product ~loc (fields : TableField.t list) =
+  let body =
+    Default.pexp_record
+      ~loc
+      (List.map fields ~f:(fun { name; _ } ->
+         let ident = Loc.make ~loc (Lident name.txt) in
+         let expr = Default.pexp_ident ~loc ident in
+         ident, expr))
+      None
+  in
+  let record =
+    List.fold_right fields ~init:body ~f:(fun { name; _ } acc ->
+      Gen.make_positional_fun ~loc name.txt acc)
+  in
+  let product =
+    List.fold_right fields ~init:[%expr proj_end] ~f:(fun field acc ->
+      let name = field.name in
+      let ident = Loc.make ~loc (Lident name.txt) in
+      let access = Default.pexp_field ~loc [%expr record] ident in
+      let param = TableField.params_field ~loc field in
+      Default.pexp_apply
+        ~loc
+        [%expr proj]
+        [ Nolabel, param; Nolabel, [%expr fun record -> [%e access]]; Nolabel, acc ])
+  in
+  [%stri
+    let record =
+      let record = [%e record] in
+      product record @@ [%e product]
+    ;;]
+;;
+
 let generate_table_module ~loc name (fields : TableField.t list) =
   let drop_query = Default.estring ~loc (Database.drop_table ~name) in
   let create_query =
@@ -212,8 +259,16 @@ let generate_table_module ~loc name (fields : TableField.t list) =
     Default.estring ~loc (Database.create_table ~name ~columns)
   in
   Ast_helper.Mod.structure
-    [ [%stri let drop db = (unit ->. unit) @@ [%e drop_query]]
-    ; [%stri let create db = (unit ->. unit) @@ [%e create_query]]
+    [ [%stri let drop = (unit ->. unit) @@ [%e drop_query]]
+    ; [%stri
+        let drop db =
+          Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.exec drop ()) db
+        ;;]
+    ; [%stri let create = (unit ->. unit) @@ [%e create_query]]
+    ; [%stri
+        let create db =
+          Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.exec create ()) db
+        ;;]
     ]
 ;;
 
@@ -229,7 +284,9 @@ let generate_impl ~ctxt (_, (type_declarations : type_declaration list)) name =
   in
   let fields = make_fields_from_type ty in
   let ename = Default.estring ~loc name in
-  let serializers = generate_serializers ~ctxt type_declarations in
+  (* let serializers = generate_serializers ~ctxt type_declarations in *)
+  let serializers = [] in
+  let caqti_product = generate_caqti_product ~loc fields in
   let field_module = generate_fields_module ~loc fields in
   let params_module = generate_params_module ~loc fields in
   let table_module = generate_table_module ~loc name fields in
@@ -237,12 +294,12 @@ let generate_impl ~ctxt (_, (type_declarations : type_declaration list)) name =
   serializers
   @ [ [%stri open Caqti_request.Infix]
     ; [%stri open Caqti_type.Std]
-    ; [%stri type row = t list [@@deriving serialize, deserialize]]
     ; [%stri module Fields = [%m field_module]]
     ; [%stri module Params = [%m params_module]]
     ; [%stri module Table = [%m table_module]]
-      (* ; [%stri let relation = [%e ename]] *)
-      (* ; [%stri let insert = [%e insert_body]] *)
+    ; [%stri let relation = [%e ename]]
+    ; caqti_product
+    ; [%stri let insert = [%e insert_body]]
       (* ; [%stri let () = Octane.TableRegistry.register { name = [%e ename]; fields = [] }] *)
     ]
 ;;

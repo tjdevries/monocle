@@ -1,34 +1,84 @@
 open Drive
 
+type 'a unfetched = [ `unfetched of 'a ]
+type 'a fetched = [ `fetched of 'a ]
+type ('id, 'model) fetch =
+  [ 'id unfetched
+  | 'model fetched
+  ]
+
 module User = struct
   type t =
-    { id : int
+    { id : int [@primary_key { autoincrement = true }]
     ; name : string
     ; email : string
     }
+  [@@deriving table { name = "users" }]
 
-  let create ~id ~name ~email = { id; name; email }
-end
+  module Params = struct
+    include Params
 
-(*
-   this is what i want to do:
-
-module Chat = struct
-  type t = { username : string; message: string }
-  [@@deriving table]
-
-  (* ... generated ... *)
-  let drop pool = ...
-  let create pool = ...
-
-  module Labels = struct
-    let insert pool ~username ~messages = ...
+    let t user = user.id
   end
 
-  module Record = struct
-    let insert pool (record : t) = ...
+  module Model = struct
+    type user = t
+    type t = (int, user) fetch
+
+    let fetch db (model : t) : user fetched =
+      match model with
+      | `unfetched id -> failwith "TODO"
+      | `fetched _ as model -> model
+    ;;
+
+    let unwrap (model : user fetched) =
+      match model with
+      | `fetched model -> model
+    ;;
+
+    let id model =
+      match model with
+      | `unfetched id -> id
+      | `fetched { id; _ } -> id
+    ;;
+
+    let name (model : user fetched) =
+      match model with
+      | `fetched { name; _ } -> name
+    ;;
+
+    let example db =
+      let model = `unfetched 1 in
+      let model = fetch db model in
+      name model
+    ;;
+
+    let example db =
+      let model = `unfetched 1 in
+      let model = fetch db model in
+      let model = unwrap model in
+      model.name
+    ;;
   end
 end
+
+module Message = struct
+  open Caqti_request.Infix
+  open Caqti_type.Std
+
+  type t =
+    { id : int [@primary_key { autoincrement = true }]
+    ; user : User.Model.t
+    ; message : string
+    }
+  [@@deriving table { name = "messages" }]
+end
+
+(* CLASSIC ORM FAILURE PATH!!!!!
+   let get_all_chats db = Db.iter (fun chat ->
+   print(chat.user.name);
+   ())
+   ...)
 *)
 
 module Chat = struct
@@ -36,42 +86,19 @@ module Chat = struct
   open Caqti_type.Std
 
   type t =
-    { username : string
+    { id : int [@primary_key { autoincrement = true }]
+    ; username : string
     ; message : string
     }
-
-  let drop pool = Database.exec pool ((unit ->. unit) "DROP TABLE IF EXISTS chats") ()
-
-  let create pool =
-    let query =
-      (unit ->. unit)
-      @@ "CREATE TABLE IF NOT EXISTS chats (id serial PRIMARY KEY, username TEXT NOT NULL, message TEXT NOT NULL)"
-    in
-    Database.exec pool query ()
-  ;;
-
-  let insert db ~username ~message =
-    let query =
-      (t2 string string ->. unit) @@ "INSERT INTO chats (username, message) VALUES ($1, $2)"
-    in
-    Database.exec db query (username, message)
-  ;;
+  [@@deriving table { name = "chats" }]
 
   let user_chats db ~username ~f =
-    let query =
-      (string ->* t3 int string string)
-      @@ "SELECT id, username, message FROM chats WHERE username = $1"
-    in
+    let query = (string ->* record) @@ "SELECT chats.* FROM chats WHERE chats.username = $1" in
     Database.iter db query username ~f
   ;;
 
   let user_messages db ~username =
-    let query =
-      (string ->* t3 int string string)
-      @@ "SELECT id, username, message FROM chats WHERE username = $1"
-    in
+    let query = (string ->* record) @@ "SELECT chats.* FROM chats WHERE username = $1" in
     Database.collect db query username
-    |> Result.map (fun result ->
-      List.map (fun (_, username, message) -> { username; message }) result)
   ;;
 end

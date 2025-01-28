@@ -24,6 +24,10 @@ let iter (t : pool) query params ~f =
   Caqti_eio.Pool.use (fun (module DB : T) -> DB.iter_s query f params) t
 ;;
 
+let find (t : pool) query params =
+  Caqti_eio.Pool.use (fun (module DB : T) -> DB.find query params) t
+;;
+
 let collect (t : pool) query params =
   Caqti_eio.Pool.use (fun (module DB : T) -> DB.collect_list query params) t
 ;;

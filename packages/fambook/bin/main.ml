@@ -8,6 +8,12 @@ let ( let= ) x f =
   | _ -> assert false
 ;;
 
+let ( let@ ) x f =
+  match x with
+  | Some result -> f result
+  | None -> failwith "Nope"
+;;
+
 (* let items%route = "GET /items/user_id:UserID" *)
 module UserChats : Route.T = struct
   type t = { user_id : string }
@@ -42,7 +48,7 @@ module UserChats : Route.T = struct
         |> Option.value ~default:"MISSING"
       in
       Logs.info (fun f -> f "Got message: %s" message);
-      let= () = insert ctx.db ~username:t.user_id ~message in
+      let= _ = insert ctx.db ~username:t.user_id ~message in
       let= messages = user_messages ctx.db ~username:t.user_id in
       let chats = List.map (fun { message; _ } -> message) messages in
       let page = SSR.Chats.render_chats { user = t.user_id; chats } in
@@ -55,15 +61,15 @@ let routes : (module Route.T) list = [ (module UserChats) ]
 
 let inner pool =
   let open Fambook.Models in
-  let* _ = Chat.drop pool in
-  let* _ = Chat.create pool in
+  let* _ = Chat.Table.drop pool in
+  let* _ = Chat.Table.create pool in
   let* _ = Chat.insert pool ~username:"tjdevries" ~message:"Hello world" in
   let* _ = Chat.insert pool ~username:"tjdevries" ~message:"Second Chat" in
   let* _ = Chat.insert pool ~username:"tjdevries" ~message:"Third Chat" in
   let* _ = Chat.insert pool ~username:"tjdevries" ~message:"Wow, beginbot is cool" in
   let* _ =
-    Chat.user_chats pool ~username:"tjdevries" ~f:(fun (_, user, chat) ->
-      Format.printf "%s: %s@." user chat;
+    Chat.user_chats pool ~username:"tjdevries" ~f:(fun { id; username; message } ->
+      Format.printf "%d, %s: %s@." id username message;
       Ok ())
   in
   Ok ()
@@ -87,6 +93,7 @@ let () =
     | Error err -> Printf.printf "Error: %s\n" (Caqti_error.show err)
   in
   Eio.Switch.run (fun sw ->
-    let port = 8082 in
-    Drive.run ~sw ~env ~port ~db routes)
+    match false with
+    | true -> Drive.run ~sw ~env ~port:8082 ~db routes
+    | false -> ())
 ;;

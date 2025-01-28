@@ -13,6 +13,7 @@ let table_relation ~loc relation =
 ;;
 
 let module_param ~loc module_name param_name =
+  Format.eprintf "module_param: %s.%s\n" module_name param_name;
   (* module_name.Params.param_name *)
   let ident = Ldot (Lident module_name, "Params") in
   let ident = Ldot (ident, param_name) in
