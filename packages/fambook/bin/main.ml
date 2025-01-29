@@ -62,26 +62,23 @@ let routes : (module Route.T) list = [ (module UserChats) ]
 let inner pool =
   let open Fambook.Models in
   let* _ = Chat.Table.drop pool in
+  (* Drop the table *)
   let* _ = Chat.Table.create pool in
-  let* chat1 = Chat.insert pool ~username:"tjdevries" ~message:"Hello world" in
-  let chat1 = { chat1 with message = "Hello world (owowowowow)" } in
+  (* Create a table *)
+  let* chat1 =
+    Chat.insert pool (* Insert a record *) ~username:"tjdevries" ~message:"Hello world"
+  in
+  (* Update a record *)
+  let* _ = Chat.update pool { chat1 with message = "updated" } in
+  let* chat = Chat.read pool 2 in
+  (* Read a record *)
+  let* () = Chat.delete pool 2 in
+
+  (* Delete a record *)
   let* _ = Chat.update pool chat1 in
   let* _ = Chat.insert pool ~username:"tjdevries" ~message:"Second Chat" in
   let* _ = Chat.insert pool ~username:"tjdevries" ~message:"Third Chat" in
   let* _ = Chat.insert pool ~username:"tjdevries" ~message:"Wow, beginbot is cool" in
-  let* chat = Chat.read pool 2 in
-  let _ =
-    match chat with
-    | Some chat -> Format.printf "@.SOME chat: %d, %s@." chat.id chat.message
-    | None -> Format.printf "no chat@."
-  in
-  let* () = Chat.delete pool 2 in
-  let* chat = Chat.read pool 2 in
-  let _ =
-    match chat with
-    | Some _ -> failwith "Should have deleted the chat"
-    | None -> ()
-  in
   let* _ =
     Chat.user_chats pool ~username:"tjdevries" ~f:(fun { id; username; message } ->
       Format.printf "%d, %s: %s@." id username message;

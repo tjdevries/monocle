@@ -169,7 +169,7 @@
 (package
  (name vite-plugin-ocaml)
  (allow_empty)
- (depends ocaml dune melange s_tier))
+ (depends ocaml dune melange))
 
 ;; vendored pg-query stuff, don't know if we'll keep
 

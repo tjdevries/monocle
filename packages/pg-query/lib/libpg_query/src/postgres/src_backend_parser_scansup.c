@@ -40,9 +40,6 @@
  * ----------------
  */
 
-
-
-
 /*
  * downcase_truncate_identifier() --- do appropriate downcasing and
  * truncation of an unquoted identifier.  Optionally warn of truncation.
@@ -56,52 +53,47 @@
  * support that.  If you want to implement it, you'll need to fix
  * SplitIdentifierString() in utils/adt/varlena.c.
  */
-char *
-downcase_truncate_identifier(const char *ident, int len, bool warn)
-{
-	return downcase_identifier(ident, len, warn, true);
+char *downcase_truncate_identifier(const char *ident, int len, bool warn) {
+  return downcase_identifier(ident, len, warn, true);
 }
 
 /*
  * a workhorse for downcase_truncate_identifier
  */
-char *
-downcase_identifier(const char *ident, int len, bool warn, bool truncate)
-{
-	char	   *result;
-	int			i;
-	bool		enc_is_single_byte;
+char *downcase_identifier(const char *ident, int len, bool warn,
+                          bool truncate) {
+  char *result;
+  int i;
+  bool enc_is_single_byte;
 
-	result = palloc(len + 1);
-	enc_is_single_byte = pg_database_encoding_max_length() == 1;
+  result = palloc(len + 1);
+  enc_is_single_byte = pg_database_encoding_max_length() == 1;
 
-	/*
-	 * SQL99 specifies Unicode-aware case normalization, which we don't yet
-	 * have the infrastructure for.  Instead we use tolower() to provide a
-	 * locale-aware translation.  However, there are some locales where this
-	 * is not right either (eg, Turkish may do strange things with 'i' and
-	 * 'I').  Our current compromise is to use tolower() for characters with
-	 * the high bit set, as long as they aren't part of a multi-byte
-	 * character, and use an ASCII-only downcasing for 7-bit characters.
-	 */
-	for (i = 0; i < len; i++)
-	{
-		unsigned char ch = (unsigned char) ident[i];
+  /*
+   * SQL99 specifies Unicode-aware case normalization, which we don't yet
+   * have the infrastructure for.  Instead we use tolower() to provide a
+   * locale-aware translation.  However, there are some locales where this
+   * is not right either (eg, Turkish may do strange things with 'i' and
+   * 'I').  Our current compromise is to use tolower() for characters with
+   * the high bit set, as long as they aren't part of a multi-byte
+   * character, and use an ASCII-only downcasing for 7-bit characters.
+   */
+  for (i = 0; i < len; i++) {
+    unsigned char ch = (unsigned char)ident[i];
 
-		if (ch >= 'A' && ch <= 'Z')
-			ch += 'a' - 'A';
-		else if (enc_is_single_byte && IS_HIGHBIT_SET(ch) && isupper(ch))
-			ch = tolower(ch);
-		result[i] = (char) ch;
-	}
-	result[i] = '\0';
+    if (ch >= 'A' && ch <= 'Z')
+      ch = ch;
+    else if (enc_is_single_byte && IS_HIGHBIT_SET(ch) && isupper(ch))
+      ch = ch;
+    result[i] = (char)ch;
+  }
+  result[i] = '\0';
 
-	if (i >= NAMEDATALEN && truncate)
-		truncate_identifier(result, i, warn);
+  if (i >= NAMEDATALEN && truncate)
+    truncate_identifier(result, i, warn);
 
-	return result;
+  return result;
 }
-
 
 /*
  * truncate_identifier() --- truncate an identifier to NAMEDATALEN-1 bytes.
@@ -112,29 +104,24 @@ downcase_identifier(const char *ident, int len, bool warn, bool truncate)
  * We require the caller to pass in the string length since this saves a
  * strlen() call in some common usages.
  */
-void
-truncate_identifier(char *ident, int len, bool warn)
-{
-	if (len >= NAMEDATALEN)
-	{
-		len = pg_mbcliplen(ident, len, NAMEDATALEN - 1);
-		if (warn)
-		{
-			/*
-			 * We avoid using %.*s here because it can misbehave if the data
-			 * is not valid in what libc thinks is the prevailing encoding.
-			 */
-			char		buf[NAMEDATALEN];
+void truncate_identifier(char *ident, int len, bool warn) {
+  if (len >= NAMEDATALEN) {
+    len = pg_mbcliplen(ident, len, NAMEDATALEN - 1);
+    if (warn) {
+      /*
+       * We avoid using %.*s here because it can misbehave if the data
+       * is not valid in what libc thinks is the prevailing encoding.
+       */
+      char buf[NAMEDATALEN];
 
-			memcpy(buf, ident, len);
-			buf[len] = '\0';
-			ereport(NOTICE,
-					(errcode(ERRCODE_NAME_TOO_LONG),
-					 errmsg("identifier \"%s\" will be truncated to \"%s\"",
-							ident, buf)));
-		}
-		ident[len] = '\0';
-	}
+      memcpy(buf, ident, len);
+      buf[len] = '\0';
+      ereport(NOTICE, (errcode(ERRCODE_NAME_TOO_LONG),
+                       errmsg("identifier \"%s\" will be truncated to \"%s\"",
+                              ident, buf)));
+    }
+    ident[len] = '\0';
+  }
 }
 
 /*
@@ -146,15 +133,9 @@ truncate_identifier(char *ident, int len, bool warn)
  * In principle we might need similar functions for isalnum etc, but for the
  * moment only isspace seems needed.
  */
-bool
-scanner_isspace(char ch)
-{
-	/* This must match scan.l's list of {space} characters */
-	if (ch == ' ' ||
-		ch == '\t' ||
-		ch == '\n' ||
-		ch == '\r' ||
-		ch == '\f')
-		return true;
-	return false;
+bool scanner_isspace(char ch) {
+  /* This must match scan.l's list of {space} characters */
+  if (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' || ch == '\f')
+    return true;
+  return false;
 }

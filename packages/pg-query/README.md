@@ -3,9 +3,16 @@ TAKEN FROM: https://github.com/roddyyaga/pg_query-ocaml/tree/master
 NOTE:
 - I had to change some of the names in the protobuf, because they were overriding some OCaml stdlib functions, like List and stuff. That made it a bit of a problem.
     - Possibly, ocaml-protoc has a way to mangle the names, but I couldn't find it.
+- I also changed it so that we don't downcase the names of identifiers, because I want to make a distinction between `user` and `User` in the parser.
+    - The reason is that using a `User` is saying that we want to access a `User` ocaml module (must be accessible, etc).
+    - But, using `user` is saying that we want to access a `user` table in the database, without any additional validation.
+    - This is still the best option I can think of atm for writing sql queries in OCaml.
 
 Looks like we can change the names in the protobuf generation, in the ruby file.
 - But, note that some of them, like List are hard-coded in the ruby file... which is a little confusing. Just didn't want to forget.
+
+
+--------------------------------------------------------------------------------
 
 # pg_query-ocaml
 

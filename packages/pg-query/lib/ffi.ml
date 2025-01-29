@@ -3,6 +3,16 @@
 external _force_link_ : unit -> unit = "pg_query_free_parse_result"
 external _force_link_protobuf_ : unit -> unit = "pg_query_free_protobuf_parse_result"
 
+type parse_error =
+  { message : string
+  ; funcname : string
+  ; filename : string
+  ; lineno : int
+  ; cursorpos : int
+  ; context : string option
+  }
+[@@deriving show]
+
 open Ctypes
 open Foreign
 
@@ -74,8 +84,20 @@ module PostgresProtobuf = struct
     let result = pg_query_parse_protobuf query in
     let parse_tree = getf result parse_tree in
     let data = getf parse_tree data in
-    let () = pg_query_free_protobuf_parse_result result in
-    let decoder = Pbrt.Decoder.of_string data in
-    Pg_query.decode_pb_parse_result decoder
+    match getf result error with
+    | Some error_ptr ->
+      let error_struct = !@error_ptr in
+      let message = getf error_struct message in
+      let filename = getf error_struct filename in
+      let funcname = getf error_struct funcname in
+      let lineno = getf error_struct lineno in
+      let cursorpos = getf error_struct cursorpos in
+      let context = getf error_struct context in
+      Error { message; funcname; filename; lineno; cursorpos; context }
+    | None ->
+      let () = pg_query_free_protobuf_parse_result result in
+      let decoder = Pbrt.Decoder.of_string data in
+      let result = Pg_query.decode_pb_parse_result decoder in
+      Ok result
   ;;
 end

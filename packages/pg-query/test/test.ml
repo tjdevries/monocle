@@ -35,10 +35,11 @@ module Parse = struct
 end
 
 module GoodParse = struct
-  let success () =
+  let insert () =
     let open PGQuery.ProtobufGen in
     let (result : PGQuery.ProtobufGen.parse_result) =
       PGQuery.Protobuf.parse "INSERT INTO users (name, email) VALUES (?, ?) RETURNING id"
+      |> Result.get_ok
     in
     Alcotest.(check int) "has one statement" 1 (List.length result.stmts);
     pp_parse_result Format.std_formatter result;
@@ -57,6 +58,36 @@ module GoodParse = struct
       ()
     | _ -> Alcotest.fail "stmt is not a select"
   ;;
+
+  let select () =
+    let open PGQuery.ProtobufGen in
+    Fmt.epr "SELECT...@.";
+    let (result : PGQuery.ProtobufGen.parse_result) =
+      PGQuery.Protobuf.parse
+        {|SELECT Something.id, Something.name FROM Something WHERE Something.id = 5;|}
+      |> Result.get_ok
+    in
+    Alcotest.(check int) "has one statement" 1 (List.length result.stmts);
+    Fmt.epr "%a@." PGQuery.ProtobufGen.pp_parse_result result;
+    let stmt = List.hd result.stmts in
+    match stmt.stmt with
+    | Some (Select_stmt select) ->
+      let () =
+        match select.from_clause with
+        | [ Range_var { relname = "Something"; _ } ] -> ()
+        | _ -> Alcotest.fail "No 'Something' table"
+      in
+      (* let () = *)
+      (*   match select.where with *)
+      (*   | Some (Where_clause (Binary_expression (left, Eq, right))) -> *)
+      (*     Alcotest.(check string) "left" "id" left.name; *)
+      (*     Alcotest.(check string) "right" "1" right.value; *)
+      (*     () *)
+      (*   | _ -> Alcotest.fail "select has wrong number of columns" *)
+      (* in *)
+      ()
+    | _ -> Alcotest.fail "stmt is not a select"
+  ;;
 end
 
 let () =
@@ -70,6 +101,9 @@ let () =
       , [ "returns no error on correct query", `Quick, Parse.success
         ; "returns an error on incorrect query", `Quick, Parse.error
         ] )
-    ; "good_parse", [ "returns no error on correct query", `Quick, GoodParse.success ]
+    ; ( "good_parse"
+      , [ "returns no error on correct query", `Quick, GoodParse.insert
+        ; "can do select statement", `Quick, GoodParse.select
+        ] )
     ]
 ;;
