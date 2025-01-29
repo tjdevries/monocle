@@ -25,6 +25,10 @@ Pretty print the file
         let _ = name
         let age = "age"
         let _ = age
+  
+        type id = int
+        type name = string
+        type age = int
       end
   
       module Params = struct
@@ -38,10 +42,6 @@ Pretty print the file
         type id = int
         type name = string
         type age = int
-      end
-  
-      module Model = struct
-        type nonrec t = (Params.id, t) Octane.Model.t
       end
   
       module Table = struct
@@ -245,6 +245,8 @@ Pretty print the file
       module Fields = struct
         let id = "id"
         let _ = id
+  
+        type id = int
       end
   
       module Params = struct
@@ -252,10 +254,6 @@ Pretty print the file
         let _ = id
   
         type id = int
-      end
-  
-      module Model = struct
-        type nonrec t = (Params.id, t) Octane.Model.t
       end
   
       module Table = struct
@@ -437,6 +435,9 @@ Pretty print the file
         let _ = id
         let name = "name"
         let _ = name
+  
+        type id = int
+        type name = string
       end
   
       module Params = struct
@@ -447,10 +448,6 @@ Pretty print the file
   
         type id = int
         type name = string
-      end
-  
-      module Model = struct
-        type nonrec t = (Params.id, t) Octane.Model.t
       end
   
       module Table = struct
@@ -926,6 +923,9 @@ Pretty print the file
         let _ = id
         let optional = "optional"
         let _ = optional
+  
+        type id = int
+        type optional = string option
       end
   
       module Params = struct
@@ -941,10 +941,6 @@ Pretty print the file
   
         type id = int
         type optional = string option
-      end
-  
-      module Model = struct
-        type nonrec t = (Params.id, t) Octane.Model.t
       end
   
       module Table = struct
@@ -1006,8 +1002,7 @@ Pretty print the file
 < language: ocaml
 
   $ pp_query ./lib/foreign.ml | ocamlformat --impl -
-  module_param: User.t
-  module_param: User.t
+  module_param: User.id
   module User = struct
     type t =
       { id : int [@primary_key { autoincrement = true }]
@@ -1028,6 +1023,9 @@ Pretty print the file
         let _ = id
         let name = "name"
         let _ = name
+  
+        type id = int
+        type name = string
       end
   
       module Params = struct
@@ -1038,10 +1036,6 @@ Pretty print the file
   
         type id = int
         type name = string
-      end
-  
-      module Model = struct
-        type nonrec t = (Params.id, t) Octane.Model.t
       end
   
       module Table = struct
@@ -1103,7 +1097,7 @@ Pretty print the file
   module Post = struct
     type t =
       { id : int [@primary_key { autoincrement = true }]
-      ; user : User.Model.t
+      ; user_id : User.Fields.id
       ; content : string
       }
     [@@deriving table { name = "posts" }]
@@ -1119,27 +1113,27 @@ Pretty print the file
       module Fields = struct
         let id = "id"
         let _ = id
-        let user = "user"
-        let _ = user
+        let user_id = "user_id"
+        let _ = user_id
         let content = "content"
         let _ = content
+  
+        type id = int
+        type user_id = User.Fields.id
+        type content = string
       end
   
       module Params = struct
         let id = Caqti_type.Std.int
         let _ = id
-        let user = User.Params.t user
-        let _ = user
+        let user_id = User.Params.id user_id
+        let _ = user_id
         let content = Caqti_type.Std.string
         let _ = content
   
         type id = int
-        type user = User.Model.t
+        type user_id = User.Fields.id
         type content = string
-      end
-  
-      module Model = struct
-        type nonrec t = (Params.id, t) Octane.Model.t
       end
   
       module Table = struct
@@ -1150,7 +1144,7 @@ Pretty print the file
   
         let create =
           (unit ->. unit)
-          @@ "CREATE TABLE posts (id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY, user INTEGER NOT NULL, content \
+          @@ "CREATE TABLE posts (id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY, user_id INTEGER NOT NULL, content \
               TEXT NOT NULL)"
         ;;
   
@@ -1163,21 +1157,25 @@ Pretty print the file
       let _ = relation
   
       let record =
-        let record id user content = { id; user; content } in
+        let record id user_id content = { id; user_id; content } in
         product record
         @@ proj
              Params.id
              (fun record -> record.id)
-             (proj Params.user (fun record -> record.user) (proj Params.content (fun record -> record.content) proj_end))
+             (proj
+                Params.user_id
+                (fun record -> record.user_id)
+                (proj Params.content (fun record -> record.content) proj_end))
       ;;
   
       let _ = record
   
-      let insert ~user ~content db =
+      let insert ~user_id ~content db =
         let query =
-          (t2 Params.user Params.content ->! record) @@ "INSERT INTO posts (user, content) VALUES (?, ?) RETURNING *"
+          (t2 Params.user_id Params.content ->! record)
+          @@ "INSERT INTO posts (user_id, content) VALUES (?, ?) RETURNING *"
         in
-        Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.find query (user, content)) db
+        Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.find query (user_id, content)) db
       ;;
   
       let _ = insert
@@ -1190,7 +1188,7 @@ Pretty print the file
       let _ = read
   
       let update db t =
-        let query = (record ->. unit) @@ "UPDATE posts SET user = $2, content = $3 WHERE posts.id = $1" in
+        let query = (record ->. unit) @@ "UPDATE posts SET user_id = $2, content = $3 WHERE posts.id = $1" in
         Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.exec query t) db
       ;;
   
@@ -1203,11 +1201,6 @@ Pretty print the file
   
       let _ = delete
     end [@@ocaml.doc "@inline"] [@@merlin.hide]
-  
-    let user_name db t =
-      let user = User.Model.fetch db t.user in
-      user.name
-    ;;
   end
 < language: ocaml
 

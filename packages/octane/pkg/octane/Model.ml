@@ -1,3 +1,5 @@
+(* FOR NOW: WE ARE NOT GOING TO USE THIS. *)
+
 type 'a id = [ `id of 'a ]
 type ('id, 'model) model = [ `model of 'id * 'model ]
 

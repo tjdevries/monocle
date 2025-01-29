@@ -148,12 +148,7 @@ let get_field_constructor ~loc ename pld_type =
     | Ptyp_constr ({ txt; _ }, []) -> begin
       match txt with
       | Lident ident -> match_lident ident optional
-      | Ldot (Ldot (Lident m, "Fields"), f) ->
-        let module_param = Gen.module_param ~loc m f in
-        [%expr [%e module_param] [%e ename]]
-      | Ldot (Ldot (Lident m, "Model"), f) ->
-        let module_param = Gen.module_param ~loc m f in
-        [%expr [%e module_param] [%e ename]]
+      | Ldot (Ldot (Lident m, "Fields"), f) -> Gen.module_param ~loc m f
       | Ldot _ -> Util.throw ~loc "TODO: unknown ldot"
       | Lapply (_, _) -> Util.throw ~loc "TODO: Lapply"
     end
@@ -170,11 +165,11 @@ let generate_fields_module ~loc (fields : TableField.t list) =
       [%stri let [%p pat] = [%e str]])
   in
   let field_types =
-    []
-    (* List.map fields ~f:(fun { loc; name; label_declaration; _ } -> *)
-    (*   let attrs = [ Attr.make_deriving_attr ~loc [ "deserialize"; "serialize" ] ] in *)
-    (*   let type_decl = Ast_helper.Type.mk name ~manifest:label_declaration.pld_type ~attrs in *)
-    (*   Ast_helper.Str.type_ Recursive [ type_decl ]) *)
+    List.map fields ~f:(fun { loc; name; label_declaration; _ } ->
+      (* let attrs = [ Attr.make_deriving_attr ~loc [ "deserialize"; "serialize" ] ] in *)
+      let attrs = [] in
+      let type_decl = Ast_helper.Type.mk name ~manifest:label_declaration.pld_type ~attrs in
+      Ast_helper.Str.type_ Recursive [ type_decl ])
   in
   Ast_helper.Mod.structure (field_names @ field_types)
 ;;
@@ -197,18 +192,18 @@ let generate_params_module ~loc (fields : TableField.t list) =
   Ast_helper.Mod.structure (field_params @ field_types)
 ;;
 
-let generate_model_module ~loc (fields : TableField.t list) =
-  let field_params =
-    TableField.map fields ~f:(fun ~loc field ->
-      let ename = TableField.ename field in
-      let param_name = Default.ppat_var ~loc field.name in
-      let constructor = get_field_constructor ~loc ename field.ty in
-      [%stri let [%p param_name] = [%e constructor]])
-  in
-  let octane_thingy = Loc.make ~loc (Ldot (Ldot (Lident "Octane", "Model"), "t")) in
-  let model_type = Ast_helper.Typ.constr ~loc octane_thingy [ [%type: Params.id]; [%type: t] ] in
-  Ast_helper.Mod.structure [ [%stri type nonrec t = [%t model_type]] ]
-;;
+(* let generate_model_module ~loc (fields : TableField.t list) = *)
+(*   let field_params = *)
+(*     TableField.map fields ~f:(fun ~loc field -> *)
+(*       let ename = TableField.ename field in *)
+(*       let param_name = Default.ppat_var ~loc field.name in *)
+(*       let constructor = get_field_constructor ~loc ename field.ty in *)
+(*       [%stri let [%p param_name] = [%e constructor]]) *)
+(*   in *)
+(*   let octane_thingy = Loc.make ~loc (Ldot (Ldot (Lident "Octane", "Model"), "t")) in *)
+(*   let model_type = Ast_helper.Typ.constr ~loc octane_thingy [ [%type: Params.id]; [%type: t] ] in *)
+(*   Ast_helper.Mod.structure [ [%stri type nonrec t = [%t model_type]] ] *)
+(* ;; *)
 
 let generate_create_function ~loc name (fields : TableField.t list) =
   let fields = List.filter fields ~f:(fun field -> FieldKind.is_fillable field.kind) in
@@ -382,7 +377,6 @@ let generate_impl ~ctxt (_, (type_declarations : type_declaration list)) name =
   let caqti_product = generate_caqti_product ~loc fields in
   let field_module = generate_fields_module ~loc fields in
   let params_module = generate_params_module ~loc fields in
-  let model_module = generate_model_module ~loc fields in
   let table_module = generate_table_module ~loc name fields in
   let create_body = generate_create_function ~loc name fields in
   let read_item = generate_read_function ~loc name fields in
@@ -393,7 +387,6 @@ let generate_impl ~ctxt (_, (type_declarations : type_declaration list)) name =
     ; [%stri open Caqti_type.Std]
     ; [%stri module Fields = [%m field_module]]
     ; [%stri module Params = [%m params_module]]
-    ; [%stri module Model = [%m model_module]]
     ; [%stri module Table = [%m table_module]]
     ; [%stri let relation = [%e ename]]
     ; caqti_product

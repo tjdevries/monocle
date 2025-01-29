@@ -26,11 +26,12 @@ module UserChats : Route.T = struct
     | _ -> None
   ;;
 
-  let handle ~(ctx : Route.context) (request : Request.t) t =
+  let handle ~(ctx : Route.context) (request : Request.t) (t : t) =
     match request.meth with
     | `GET ->
       let open Fambook.Models.Chat in
-      let= messages = user_messages ctx.db ~username:t.user_id in
+      (* let= messages = user_messages ctx.db ~username:t.user_id in *)
+      let messages = [] in
       let chats = List.map (fun { message; _ } -> message) messages in
       let page = SSR.Chats.page { user = t.user_id; chats } in
       Response.of_string @@ JSX.render page
@@ -48,10 +49,11 @@ module UserChats : Route.T = struct
         |> Option.value ~default:"MISSING"
       in
       Logs.info (fun f -> f "Got message: %s" message);
-      let= _ = insert ctx.db ~username:t.user_id ~message in
-      let= messages = user_messages ctx.db ~username:t.user_id in
-      let chats = List.map (fun { message; _ } -> message) messages in
-      let page = SSR.Chats.render_chats { user = t.user_id; chats } in
+      (* let= _ = insert ctx.db ~username:t.user_id ~message in *)
+      (* let= messages = user_messages ctx.db ~username:t.user_id in *)
+      (* let chats = List.map (fun { message; _ } -> message) messages in *)
+      let chats = [] in
+      let page = SSR.Chats.render_chats { user = "hello"; chats } in
       Response.of_string ~content_type:"text/html" ~fragment:true @@ JSX.render page
     | _ -> Response.of_string "NOPE"
   ;;
@@ -61,27 +63,23 @@ let routes : (module Route.T) list = [ (module UserChats) ]
 
 let inner pool =
   let open Fambook.Models in
+  let* _ = User.Table.drop pool in
+  let* _ = User.Table.create pool in
+  let* user1 = User.insert pool ~name:"tjdevries" ~email:"tjdevries@gmail.com" in
   let* _ = Chat.Table.drop pool in
-  (* Drop the table *)
   let* _ = Chat.Table.create pool in
-  (* Create a table *)
-  let* chat1 =
-    Chat.insert pool (* Insert a record *) ~username:"tjdevries" ~message:"Hello world"
+  let* chat = Chat.insert pool (* Insert a record *) ~user_id:user1.id ~message:"Hello world" in
+  let* _ = Chat.update pool { chat with message = "updated" } in
+  let* loaded = Chat.Model.read pool 1 in
+  let _ =
+    match loaded with
+    | Some loaded ->
+      Format.printf "loaded: %s / %s (%s)@." loaded.message loaded.user.name loaded.user.email
+    | None -> Format.printf "None@."
   in
-  (* Update a record *)
-  let* _ = Chat.update pool { chat1 with message = "updated" } in
-  let* chat = Chat.read pool 2 in
-  (* Read a record *)
-  let* () = Chat.delete pool 2 in
-
-  (* Delete a record *)
-  let* _ = Chat.update pool chat1 in
-  let* _ = Chat.insert pool ~username:"tjdevries" ~message:"Second Chat" in
-  let* _ = Chat.insert pool ~username:"tjdevries" ~message:"Third Chat" in
-  let* _ = Chat.insert pool ~username:"tjdevries" ~message:"Wow, beginbot is cool" in
   let* _ =
-    Chat.user_chats pool ~username:"tjdevries" ~f:(fun { id; username; message } ->
-      Format.printf "%d, %s: %s@." id username message;
+    Chat.user_chats pool ~user_id:user1.id ~f:(fun { id; user_id; message } ->
+      Format.printf "%d, %d: %s@." id user_id message;
       Ok ())
   in
   Ok ()
