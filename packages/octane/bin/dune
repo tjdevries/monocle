@@ -4,10 +4,3 @@
  (name oql_parse)
  (modules oql_parse)
  (libraries oql octane fmt bos core))
-
-(executable
- (public_name oql_lex)
- (package octane)
- (name oql_lex)
- (modules oql_lex)
- (libraries oql octane fmt bos core))

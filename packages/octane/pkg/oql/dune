@@ -1,14 +1,7 @@
 (library
  (name oql)
  (public_name oql)
- (libraries menhirLib fmt ppxlib core)
+ (libraries fmt ppxlib core PGQuery)
  (inline_tests)
  (preprocess
   (pps ppx_deriving.std ppx_jane)))
-
-(ocamllex lexer)
-
-(menhir
- (modules parser)
- (flags --table)
- (explain true))

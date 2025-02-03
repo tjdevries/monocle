@@ -1,2 +1,2 @@
 (cram
- (deps %{bin:oql_parse} %{bin:oql_lex} %{bin:pp_query}))
+ (deps %{bin:oql_parse} %{bin:pp_query}))

@@ -11,7 +11,7 @@ let print_parsed_file fpath =
   in
   match Run.parse contents with
   | Ok parsed -> Fmt.pr "%a@." Ast.pp parsed
-  | Error msg -> Fmt.pr "cannot parse file %a: %s" Fpath.pp fpath msg
+  | Error _ -> Fmt.pr "cannot parse file %a" Fpath.pp fpath
 ;;
 
 let _ =

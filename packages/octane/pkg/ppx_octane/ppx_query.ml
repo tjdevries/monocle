@@ -63,78 +63,79 @@ let letter_rule =
     let ast =
       match Oql.Run.parse query with
       | Ok ast -> ast
-      | Error msg -> failwith msg
+      | Error msg -> failwith "OH NO: 66"
     in
     (* Fmt.epr "@.=====@.query: %s@." query; *)
     (* Fmt.epr "%a@.======@." Oql.Ast.pp ast; *)
     let items =
       match ast with
-      | Oql.Ast.Select { select; from = Some relation; where } ->
-        let open Oql.Ast in
-        let expressions = get_select_expressions select in
-        let fields =
-          List.filter_map
-            ~f:(fun e ->
-              match e with
-              | Column col -> assert false
-              | ModelField model_field ->
-                let open Ast_builder.Default in
-                let m = ModelField.model_name model_field in
-                let f_start, f_end, f = model_field.field in
-                let f_loc = Location.{ loc_start = f_start; loc_end = f_end; loc_ghost = false } in
-                let f_loc = add_location query_loc f_loc 1 in
-                let ident = Ldot (Lident m, "Fields") in
-                let ident = Ldot (ident, f) in
-                let type_ : core_type = ptyp_constr ~loc (Loc.make ~loc:f_loc ident) [] in
-                Some (label_declaration ~loc ~name:(Loc.make ~loc f) ~mutable_:Immutable ~type_)
-              | _ -> None)
-            expressions
-        in
-        (* let _ = Ast_builder.Default.ptyp_extension *)
-        let invalid_model = Oql.Analysis.get_invalid_model ast in
-        let items =
-          match invalid_model with
-          | None ->
-            let type_decl =
-              Ast_builder.Default.type_declaration
-                ~loc
-                ~name:(Loc.make ~loc "t")
-                ~params:[]
-                ~cstrs:[]
-                ~kind:(Ptype_record fields)
-                ~private_:Public
-                ~manifest:None
-            in
-            let attributes = Attr.make_deriving_attr ~loc [ "serialize"; "deserialize" ] in
-            let type_decl = { type_decl with ptype_attributes = [ attributes ] } in
-            let type_decl = Ast_builder.Default.pstr_type ~loc Recursive [ type_decl ] in
-            let query_fn = Gen.of_ast ~loc ast in
-            (* [%p arg1] *)
-            (* let arg1 = Ast_builder.Default.ppat_var ~loc (Loc.make ~loc "db") in *)
-            [ type_decl
-            ; [%stri
-                module Query = struct
-                  type query = t list [@@deriving deserialize, serialize]
-                end]
-            ; [%stri let deserialize = Query.deserialize_query]
-            ; query_fn
-            ]
-          | Some invalid_model ->
-            (* let loc = Oql.Ast.Model.location invalid_model in *)
-            let loc = add_location query_loc (Oql.Ast.ModelField.location invalid_model) 2 in
-            (* let _ = Ast_builder.Default.plb in *)
-            let ty =
-              Ast_builder.Default.ptyp_extension ~loc
-              @@ Location.error_extensionf
-                   ~loc
-                   "Invalid Model: Module '%a' is not selected in query"
-                   Oql.Ast.Model.pp
-                   invalid_model.model
-            in
-            [ [%stri type t = [%t ty]] ]
-        in
-        items
-      | _ -> []
+      | _ -> failwith "TODO: items "
+      (* | Oql.Ast.Select { select; from = Some relation; where } -> *)
+      (*   let open Oql.Ast in *)
+      (*   let expressions = get_select_expressions select in *)
+      (*   let fields = *)
+      (*     List.filter_map *)
+      (*       ~f:(fun e -> *)
+      (*         match e with *)
+      (*         | Column col -> assert false *)
+      (*         | ModelField model_field -> *)
+      (*           let open Ast_builder.Default in *)
+      (*           let m = ModelField.model_name model_field in *)
+      (*           let f_start, f_end, f = model_field.field in *)
+      (*           let f_loc = Location.{ loc_start = f_start; loc_end = f_end; loc_ghost = false } in *)
+      (*           let f_loc = add_location query_loc f_loc 1 in *)
+      (*           let ident = Ldot (Lident m, "Fields") in *)
+      (*           let ident = Ldot (ident, f) in *)
+      (*           let type_ : core_type = ptyp_constr ~loc (Loc.make ~loc:f_loc ident) [] in *)
+      (*           Some (label_declaration ~loc ~name:(Loc.make ~loc f) ~mutable_:Immutable ~type_) *)
+      (*         | _ -> None) *)
+      (*       expressions *)
+      (* in *)
+      (* (* let _ = Ast_builder.Default.ptyp_extension *) *)
+      (* let invalid_model = Oql.Analysis.get_invalid_model ast in *)
+      (* let items = *)
+      (*   match invalid_model with *)
+      (*   | None -> *)
+      (*     let type_decl = *)
+      (*       Ast_builder.Default.type_declaration *)
+      (*         ~loc *)
+      (*         ~name:(Loc.make ~loc "t") *)
+      (*         ~params:[] *)
+      (*         ~cstrs:[] *)
+      (*         ~kind:(Ptype_record fields) *)
+      (*         ~private_:Public *)
+      (*         ~manifest:None *)
+      (*     in *)
+      (*     let attributes = Attr.make_deriving_attr ~loc [ "serialize"; "deserialize" ] in *)
+      (*     let type_decl = { type_decl with ptype_attributes = [ attributes ] } in *)
+      (*     let type_decl = Ast_builder.Default.pstr_type ~loc Recursive [ type_decl ] in *)
+      (*     let query_fn = Gen.of_ast ~loc ast in *)
+      (*     (* [%p arg1] *) *)
+      (*     (* let arg1 = Ast_builder.Default.ppat_var ~loc (Loc.make ~loc "db") in *) *)
+      (*     [ type_decl *)
+      (*     ; [%stri *)
+      (*         module Query = struct *)
+      (*           type query = t list [@@deriving deserialize, serialize] *)
+      (*         end] *)
+      (*     ; [%stri let deserialize = Query.deserialize_query] *)
+      (*     ; query_fn *)
+      (*     ] *)
+      (*   | Some invalid_model -> *)
+      (*     (* let loc = Oql.Ast.Model.location invalid_model in *) *)
+      (*     let loc = add_location query_loc (Oql.Ast.ModelField.location invalid_model) 2 in *)
+      (*     (* let _ = Ast_builder.Default.plb in *) *)
+      (*     let ty = *)
+      (*       Ast_builder.Default.ptyp_extension ~loc *)
+      (*       @@ Location.error_extensionf *)
+      (*            ~loc *)
+      (*            "Invalid Model: Module '%a' is not selected in query" *)
+      (*            Oql.Ast.Model.pp *)
+      (*            invalid_model.model *)
+      (*     in *)
+      (*     [ [%stri type t = [%t ty]] ] *)
+      (*   in *)
+      (*   items *)
+      (* | _ -> [] *)
     in
     let query = Ast_builder.Default.estring ~loc query in
     let ignore_warning = Attr.make_ignore_warning ~loc in

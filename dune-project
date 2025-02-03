@@ -2,7 +2,7 @@
 
 (cram enable)
 
-(using menhir 3.0)
+; (using menhir 3.0)
 
 (using directory-targets 0.1)
 
@@ -43,8 +43,8 @@
   dune
   ocamlformat
   ;; Parsing deps
-  menhir
-  menhirLib
+  ; menhir
+  ; menhirLib
   bos
   serde
   serde_derive
