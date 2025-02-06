@@ -5,19 +5,19 @@
  (action
   (copy libpg_query/libpg_query.a libpg_query.a)))
 
-(rule
- (deps
-  (source_tree libpg_query))
- (targets pg_query.ml)
- (mode promote)
- (action
-  (run
-   ocaml-protoc
-   --binary
-   --pp
-   --ml_out
-   ./
-   ./libpg_query/protobuf/pg_query.proto)))
+; (rule
+;  (deps
+;   (source_tree libpg_query))
+;  (targets pg_query.ml)
+;  (mode promote)
+;  (action
+;   (run
+;    ocaml-protoc
+;    --binary
+;    --pp
+;    --ml_out
+;    ./
+;    ./libpg_query/protobuf/pg_query.proto)))
 
 (library
  (name PGQuery)

@@ -1,4 +1,4 @@
-module User = struct
+module Account = struct
   type t =
     { id : int [@primary_key { autoincrement = true }]
     ; name : string

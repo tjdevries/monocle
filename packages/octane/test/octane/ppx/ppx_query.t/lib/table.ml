@@ -1,10 +1,10 @@
-module User = struct
+module Account = struct
   type t =
     { id : int [@primary_key { autoincrement = true }]
     ; name : string
     ; age : int
     }
-  [@@deriving table { name = "users" }]
+  [@@deriving table { name = "accounts" }]
 end
 
-let%query (module UserNameQuery) = "select User.id, User.name from User"
+let%query (module AccountNameQuery) = "SELECT Account.id, Account.name FROM Account WHERE id = 5"

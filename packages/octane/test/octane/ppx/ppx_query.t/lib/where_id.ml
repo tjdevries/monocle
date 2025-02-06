@@ -1,7 +1,5 @@
-module User = struct
+module Account = struct
   type t = { id : int } [@@deriving table { name = "users" }]
 end
 
-let%query (module UserByID) =
-  "SELECT User.id, User.name FROM User WHERE User.id = $id"
-;;
+let%query (module AccountByID) = "SELECT Account.id, Account.name FROM Account WHERE Account.id = $id"

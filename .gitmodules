@@ -1,0 +1,3 @@
+[submodule "packages/pg-query/lib/libpg_query"]
+	path = packages/pg-query/lib/libpg_query
+	url = https://github.com/tjdevries/libpg_query

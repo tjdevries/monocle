@@ -1,7 +1,7 @@
 let%query (module AuthorAndContent) =
-  {| SELECT User.name, Post.content FROM Post INNER JOIN User ON User.id = Post.author |}
+  {| SELECT Account.name, Post.content FROM Post INNER JOIN Account ON Account.id = Post.author |}
 ;;
 
-let%query (module AuthorAndContent) =
-  {| SELECT User.name, Post.content FROM Post INNER JOIN User ON User.id = Post.authorasdf |}
-;;
+(* let%query (module AuthorAndContent) = *)
+(*   {| SELECT Account.name, Post.content FROM Post INNER JOIN Account ON Account.id = Post.authorasdf |} *)
+(* ;; *)

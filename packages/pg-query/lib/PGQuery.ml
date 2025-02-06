@@ -42,15 +42,5 @@ let parse query =
   let result = raw_parse query in
   match result.error with
   | None -> Ok result.parse_tree
-  | Some { message; _ } -> Error message
+  | Some error -> Error error
 ;;
-
-let parse_protobuf query =
-  let result = raw_parse query in
-  match result.error with
-  | None -> Ok result.parse_tree
-  | Some { message; _ } -> Error message
-;;
-
-module Protobuf = Ffi.PostgresProtobuf
-module ProtobufGen = Pg_query

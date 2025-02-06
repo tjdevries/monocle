@@ -1,1 +1,1 @@
-let%query (module ShouldError) = "SELECT Post.id from User"
+let%query (module ShouldError) = "SELECT Post.id from Account"

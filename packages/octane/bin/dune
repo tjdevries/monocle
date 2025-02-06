@@ -4,3 +4,9 @@
  (name oql_parse)
  (modules oql_parse)
  (libraries oql octane fmt bos core))
+
+(executable
+ (name oql_check)
+ (public_name oql_check)
+ (package octane)
+ (libraries cmdliner PGQuery yojson oql))

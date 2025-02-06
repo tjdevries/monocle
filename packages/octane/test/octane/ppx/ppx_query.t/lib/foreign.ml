@@ -1,4 +1,4 @@
-module User = struct
+module Account = struct
   type t =
     { id : int [@primary_key { autoincrement = true }]
     ; name : string
@@ -9,7 +9,7 @@ end
 module Post = struct
   type t =
     { id : int [@primary_key { autoincrement = true }]
-    ; user_id : User.Fields.id
+    ; user_id : Account.Fields.id
     ; content : string
     }
   [@@deriving table { name = "posts" }]

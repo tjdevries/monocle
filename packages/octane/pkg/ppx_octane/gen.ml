@@ -8,8 +8,6 @@ let make_positional_param_expr ~loc i =
 ;;
 
 let table_relation ~loc relation =
-  (* let relation = TableOrQuery.get_name relation in *)
-  let relation = failwith "TODO: table_relation" in
   let ident = Ldot (Lident relation, "relation") in
   let ident = Loc.make ~loc ident in
   Ast_helper.Exp.ident ~loc ident
@@ -67,61 +65,62 @@ let type_of_expression_to_generated_expression ~loc type_of_expr expr =
   | _ -> expr
 ;;
 
-type state = { params : Analysis.params }
+type params =
+  { positional : int list
+  ; named : string list
+  }
 
-let rec of_ast ~loc (ast : Ast.t) =
-  let _ = ast in failwith "TODO: select"
-(* let params = Analysis.find_params ast in *)
-(* let state = { params } in *)
-(* match ast with *)
-(* | Select select -> if true then failwith "TODO: select" *)
-(* let query_expr = to_select_string ~loc ~state select in *)
-(* let paramlist = *)
-(*   List.fold_left params.positional ~init:[] ~f:(fun acc pos -> Fmt.str "p%d" pos :: acc) *)
-(* in *)
-(* let paramlist = List.rev_append paramlist params.named in *)
-(* let paramslist = *)
-(*   List.map paramlist ~f:(fun param -> *)
-(*     let type_constraint = Analysis.get_type_of_named_param ast (NamedParam param) in *)
-(*     type_of_expression_to_generated_expression ~loc type_constraint param) *)
-(* in *)
-(* let params_expr = Ast_builder.Default.elist ~loc paramslist in *)
-(* (* let idk = Ast_builder.Default.pexp_open *) *)
-(* (* let params_expr = Ast_builder.Default.pexp_open ~loc idk params_expr in *) *)
-(* (* let f = Ast_helper.Exp.fun_ in *) *)
-(* (* let arg_label *) *)
-(* let body = *)
-(*   [%expr *)
-(*     let query = [%e query_expr] in *)
-(*     (* TODO: change query to not be VALUES *) *)
-(*     let open DBCaml.Params.Values in *)
-(*     let params = [%e params_expr] in *)
-(*     (* Fmt.epr "query: %s@." query; *) *)
-(*     DBCaml.query db ~query ~params ~deserializer:deserialize] *)
-(* in *)
-(* let body = *)
-(*   List.fold_right params.positional ~init:body ~f:(fun pos body -> *)
-(*     make_fun ~loc (Fmt.str "p%d" pos) body) *)
-(* in *)
-(* let body = *)
-(*   List.fold params.named ~init:body ~f:(fun body pos -> make_labelled_fun ~loc pos body) *)
-(* in *)
-(* let f = make_fun ~loc "db" body in *)
-(* [%stri let query = [%e f]] *)
-(**)
-(* and of_from_clause ~loc ~state (from : Ast.from_clause) = *)
-(*   match from with *)
-(*   | From relations -> *)
-(*     let tables = List.map relations ~f:(table_relation ~loc) |> Ast_builder.Default.elist ~loc in *)
-(*     [%expr String.concat ~sep:", " [%e tables]] *)
-(*   | Join join_clause -> *)
-(*     (* <table> <join stanzas> *) *)
-(*     let relation = table_relation ~loc join_clause.relation in *)
-(*     let stanzas = *)
-(*       List.map join_clause.stanzas ~f:(of_join_stanza ~loc ~state) |> Ast_builder.Default.elist ~loc *)
-(*     in *)
-(*     [%expr Stdlib.Format.sprintf "%s %s" [%e relation] (String.concat ~sep:"\n" [%e stanzas])] *)
-(**)
+type state = { params : params }
+
+let rec of_ast ~loc (ast : Ast.statement) =
+  (* let params = Analysis.find_params ast in *)
+  let params = { positional = []; named = [] } in
+  let state = { params } in
+  match ast with
+  | Select select ->
+    let query_expr = to_select_string ~loc ~state select in
+    let paramlist =
+      List.fold_left params.positional ~init:[] ~f:(fun acc pos -> Fmt.str "p%d" pos :: acc)
+    in
+    let paramlist = List.rev_append paramlist params.named in
+    let paramslist =
+      List.map paramlist ~f:(fun param ->
+        (* let type_constraint = Analysis.get_type_of_named_param ast (NamedParam param) in *)
+        (* type_of_expression_to_generated_expression ~loc type_constraint param) *)
+        failwith "TODO: get_type_of_named_param")
+    in
+    let params_expr = Ast_builder.Default.elist ~loc paramslist in
+    (* let idk = Ast_builder.Default.pexp_open *)
+    (* let params_expr = Ast_builder.Default.pexp_open ~loc idk params_expr in *)
+    (* let f = Ast_helper.Exp.fun_ in *)
+    (* let arg_label *)
+    let body =
+      [%expr
+        let open Caqti_request.Infix in
+        let open Caqti_type.Std in
+        let query = (unit ->* record) @@ [%e query_expr] in
+        let params = () in
+        (* Fmt.epr "query: %s@." query; *)
+        Octane.Database.collect db query params]
+    in
+    let body =
+      List.fold_right params.positional ~init:body ~f:(fun pos body ->
+        make_fun ~loc (Fmt.str "p%d" pos) body)
+    in
+    let body =
+      List.fold params.named ~init:body ~f:(fun body pos -> make_labelled_fun ~loc pos body)
+    in
+    let f = make_fun ~loc "db" body in
+    [%stri let query = [%e f]]
+
+and of_from_clause ~loc ~state (from : Ast.select_from) =
+  match from with
+  | Relation relations ->
+    let relations = [ relations ] in
+    let tables = List.map relations ~f:(table_relation ~loc) |> Ast_builder.Default.elist ~loc in
+    [%expr Core.String.concat ~sep:", " [%e tables]]
+  | _ -> failwith "TODO: from_clause"
+
 (* and of_join_stanza ~loc ~state (stanza : Ast.join_stanza) = *)
 (*   let op, table, join_constraint = stanza in *)
 (*   let op = *)
@@ -136,53 +135,76 @@ let rec of_ast ~loc (ast : Ast.t) =
 (*     let on = of_expression ~loc ~state expr in *)
 (*     [%expr Stdlib.Format.sprintf "%s %s ON %s" [%e op] [%e table] [%e on]] *)
 (*   | Using fields -> failwith "using fields" *)
-(**)
-(* and to_select_string ~loc ~state (select : Ast.select_statement) = *)
-(*   match select.from with *)
-(*   | Some relation -> *)
-(*     let from_clause = of_from_clause ~loc ~state relation in *)
-(*     let expressions = Ast.get_select_expressions select.select in *)
-(*     let select_clause = of_expressions ~loc ~state expressions in *)
-(*     let e = *)
-(*       match select.where with *)
-(*       | Some w -> *)
-(*         let where_clause = of_expression ~loc ~state w in *)
-(*         [%expr *)
-(*           Stdlib.Format.sprintf *)
-(*             "SELECT %s FROM %s WHERE %s" *)
-(*             [%e select_clause] *)
-(*             [%e from_clause] *)
-(*             [%e where_clause]] *)
-(*       | None -> *)
-(*         [%expr Stdlib.Format.sprintf "SELECT %s FROM %s" [%e select_clause] [%e from_clause]] *)
-(*     in *)
-(*     e *)
-(*   | None -> failwith "no relations: must be arch user" *)
-(**)
-(* and of_expressions ~loc ~state (expressions : Ast.expression list) = *)
-(*   let exprs = List.map ~f:(of_expression ~loc ~state) expressions in *)
-(*   let exprs = Ast_builder.Default.elist ~loc exprs in *)
-(*   [%expr Stdlib.String.concat ", " [%e exprs]] *)
-(**)
-(* and of_expression ~loc ~state (expression : Ast.expression) = *)
-(*   match expression with *)
-(*   | Ast.NumericLiteral _ -> failwith "Number" *)
-(*   | Ast.StringLiteral _ -> failwith "String" *)
-(*   | Ast.BitString _ -> failwith "BitString" *)
-(*   | Ast.TypeCast _ -> failwith "TypeCast" *)
-(*   | Ast.PositionalParam pos -> make_positional_param_expr ~loc pos *)
-(*   | Ast.NamedParam name -> [%expr "KEKW"] *)
-(*   | Ast.Column col -> of_column ~loc col *)
-(*   | Ast.Index (_, _) -> failwith "Index" *)
-(*   | Ast.BinaryExpression (left, op, right) -> of_binary_expression ~loc ~state left op right *)
-(*   | Ast.UnaryExpression (_, _) -> failwith "UnaryExpression" *)
-(*   | Ast.FunctionCall (_, _) -> failwith "FunctionCall" *)
-(*   | Ast.Null -> failwith "Null" *)
-(*   | Ast.ModelField m -> of_model_field ~loc m *)
-(*   (* | Ast.ColumnReference (column_ref, field) -> *) *)
-(*   (*   of_column_reference ~loc (column_ref, field) *) *)
-(*   | _ -> failwith "unsupported expression" *)
-(**)
+
+and to_select_string ~loc ~state (select : Ast.select_statement) =
+  match select.from with
+  | [ relation ] ->
+    let from_clause = of_from_clause ~loc ~state relation in
+    (* let expressions = Ast.get_select_expressions select.select in *)
+    let select_clause = of_targets ~loc ~state select.targets in
+    let e =
+      (* match select.where with *)
+      (* | Some w -> *)
+      (*   let where_clause = of_expression ~loc ~state w in *)
+      (*   [%expr *)
+      (*     Stdlib.Format.sprintf *)
+      (*       "SELECT %s FROM %s WHERE %s" *)
+      (*       [%e select_clause] *)
+      (*       [%e from_clause] *)
+      (*       [%e where_clause]] *)
+      (* | None -> *)
+      [%expr Stdlib.Format.sprintf "SELECT %s FROM %s" [%e select_clause] [%e from_clause]]
+    in
+    e
+  | [] -> failwith "no relations: must be arch user"
+  | _ -> failwith "too many relations: must be on windows 95"
+
+and of_targets ~loc ~state (expressions : Ast.Expression.t list) =
+  let exprs = List.map ~f:(of_target ~loc ~state) expressions in
+  let exprs = Ast_builder.Default.elist ~loc exprs in
+  [%expr Stdlib.String.concat ", " [%e exprs]]
+
+and of_target ~loc ~state (target : Ast.Expression.t) =
+  match target with
+  | Column (None, None, Star) -> [%expr "*"]
+  | Column (None, Some table, field) ->
+    let field =
+      match field with
+      | Star -> "*"
+      | Field field -> field
+    in
+    let string = Fmt.str "%s.%s" table field in
+    let string = Ast_builder.Default.estring ~loc string in
+    string
+  | Model (model, field) ->
+    let field =
+      match field with
+      | Star -> "*"
+      | Field field -> field
+    in
+    let relation = table_relation ~loc model in
+    let field = Ast_builder.Default.estring ~loc field in
+    [%expr Stdlib.Format.sprintf "%s.%s" [%e relation] [%e field]]
+  (* let string = Fmt.str "%s.%s" model field in *)
+  (* let string = Ast_builder.Default.estring ~loc string in *)
+  (* string *)
+  (* | Ast.NumericLiteral _ -> failwith "Number" *)
+  (* | Ast.StringLiteral _ -> failwith "String" *)
+  (* | Ast.BitString _ -> failwith "BitString" *)
+  (* | Ast.TypeCast _ -> failwith "TypeCast" *)
+  (* | Ast.PositionalParam pos -> make_positional_param_expr ~loc pos *)
+  (* | Ast.NamedParam name -> [%expr "KEKW"] *)
+  (* | Ast.Column col -> of_column ~loc col *)
+  (* | Ast.Index (_, _) -> failwith "Index" *)
+  (* | Ast.BinaryExpression (left, op, right) -> of_binary_expression ~loc ~state left op right *)
+  (* | Ast.UnaryExpression (_, _) -> failwith "UnaryExpression" *)
+  (* | Ast.FunctionCall (_, _) -> failwith "FunctionCall" *)
+  (* | Ast.Null -> failwith "Null" *)
+  (* | Ast.ModelField m -> of_model_field ~loc m *)
+  (* | Ast.ColumnReference (column_ref, field) -> *)
+  (*   of_column_reference ~loc (column_ref, field) *)
+  | _ -> Fmt.failwith "unsupported target: %a" Oql.Ast.Expression.pp target
+
 (* and of_binary_expression ~loc ~state left op right = *)
 (*   let open Oql.Ast in *)
 (*   (* User.id = $id *) *)
@@ -203,22 +225,22 @@ let rec of_ast ~loc (ast : Ast.t) =
 (*     let right = of_model_field ~loc right in *)
 (*     [%expr Stdlib.Format.sprintf "(%s = %s)" [%e left] [%e right]] *)
 (*   | _ -> failwith "binary expression: not supported" *)
-(**)
-(* and of_named_param ~loc ~state (name : string) = *)
-(*   let named_position, _ = List.findi_exn state.params.named ~f:(fun _ n -> String.(n = name)) in *)
-(*   let position = List.length state.params.positional + named_position + 1 in *)
-(*   of_position_param ~loc ~state position *)
-(**)
-(* and of_position_param ~loc ~state pos = *)
-(*   (* make_positional_param_expr ~loc pos *) *)
-(*   Ast_builder.Default.estring ~loc ("$" ^ Stdlib.string_of_int pos) *)
-(**)
+
+and of_named_param ~loc ~state (name : string) =
+  let named_position, _ = List.findi_exn state.params.named ~f:(fun _ n -> String.(n = name)) in
+  let position = List.length state.params.positional + named_position + 1 in
+  of_position_param ~loc ~state position
+
+and of_position_param ~loc ~state pos =
+  (* make_positional_param_expr ~loc pos *)
+  Ast_builder.Default.estring ~loc ("$" ^ Stdlib.string_of_int pos)
+
 (* and of_bitop ~loc op = *)
 (*   match op with *)
 (*   | Ast.Add -> Ast_builder.Default.estring ~loc "+" *)
 (*   | Ast.Eq -> Ast_builder.Default.estring ~loc "=" *)
 (*   | _ -> failwith "bitop" *)
-(**)
+
 (* and of_model_field ~loc m = *)
 (*   let open Ast in *)
 (*   (* let loc = ModelField.location m in *) *)
@@ -230,14 +252,14 @@ let rec of_ast ~loc (ast : Ast.t) =
 (*   let field = Loc.make ~loc field in *)
 (*   let field = Ast_helper.Exp.ident ~loc field in *)
 (*   [%expr Stdlib.Format.sprintf "%s.%s" [%e table] [%e field]] *)
-(**)
-(* and of_column ~loc col = *)
-(*   match col with *)
-(*   (* | Table (Module ident), Field (_, _, Unquoted field) -> *) *)
-(*   (*   (* TODO: This is not how we want table refs to work *) *) *)
-(*   (*   let table = table_relation ~loc (Table ident) in *) *)
-(*   (*   let field = Ast_builder.Default.estring ~loc field in *) *)
-(*   (*   (* Ast_builder.Default.estring ~loc (Fmt.str "%s.%s" table field) *) *) *)
-(*   (*   [%expr Stdlib.Format.sprintf "%s.%s" [%e table] [%e field]] *) *)
-(*   | _ -> failwith "column_ref" *)
-(* ;; *)
+
+and of_column ~loc col =
+  match col with
+  (* | Table (Module ident), Field (_, _, Unquoted field) -> *)
+  (*   (* TODO: This is not how we want table refs to work *) *)
+  (*   let table = table_relation ~loc (Table ident) in *)
+  (*   let field = Ast_builder.Default.estring ~loc field in *)
+  (*   (* Ast_builder.Default.estring ~loc (Fmt.str "%s.%s" table field) *) *)
+  (*   [%expr Stdlib.Format.sprintf "%s.%s" [%e table] [%e field]] *)
+  | _ -> failwith "column_ref"
+;;

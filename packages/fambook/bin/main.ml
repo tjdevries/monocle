@@ -61,14 +61,18 @@ end
 
 let routes : (module Route.T) list = [ (module UserChats) ]
 
+module Account = Fambook.Models.Account
+let%query (module UserInfoQuery) = "SELECT Account.id, Account.name, Account.email FROM Account"
+
 let inner pool =
   let open Fambook.Models in
-  let* _ = User.Table.drop pool in
-  let* _ = User.Table.create pool in
-  let* user1 = User.insert pool ~name:"tjdevries" ~email:"tjdevries@gmail.com" in
+  let* _ = Account.Table.drop pool in
+  let* _ = Account.Table.create pool in
+  let* user1 = Account.insert pool ~name:"tjdevries" ~email:"tjdevries@example.com" in
+  let* _ = Account.insert pool ~name:"theprimeagen" ~email:"cantread@example.com" in
   let* _ = Chat.Table.drop pool in
   let* _ = Chat.Table.create pool in
-  let* chat = Chat.insert pool (* Insert a record *) ~user_id:user1.id ~message:"Hello world" in
+  let* chat = Chat.insert pool ~user_id:user1.id ~message:"Hello world" in
   let* _ = Chat.update pool { chat with message = "updated" } in
   let* loaded = Chat.Model.read pool 1 in
   let _ =
@@ -82,6 +86,11 @@ let inner pool =
       Format.printf "%d, %d: %s@." id user_id message;
       Ok ())
   in
+  let* info = UserInfoQuery.query pool in
+  Format.printf "===== info ======@.";
+  List.iter
+    (fun UserInfoQuery.{ id; name; email } -> Format.printf "%d, %s (%s)@." id name email)
+    info;
   Ok ()
 ;;
 

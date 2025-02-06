@@ -22,22 +22,21 @@ let get_contents = function
     let file_length = in_channel_length ic in
     let contents = really_input_string ic file_length in
     close_in ic;
+    Format.printf "%s@." contents;
     contents
 ;;
 
 let do_parse files =
   let f exit_status filename =
-    let result = get_contents filename |> PGQuery.parse in
+    let result = get_contents filename |> Oql.Run.parse in
     match result with
-    | Ok parse_tree ->
-      print_endline parse_tree;
-      exit_status
-    | Error message ->
-      print_endline message;
+    | Ok parsed ->
+      List.iter (fun stmt -> Format.printf "%s@." (Oql.Ast.show_statement stmt)) parsed;
       1
+    | _ -> failwith "cannot parse"
   in
   let status = files |> List.fold_left f 0 in
-  exit status
+  Ok status
 ;;
 
 let info =
@@ -73,11 +72,7 @@ let () =
   Format.printf "Executing cmd:\n";
   match Cmd.eval_value cmd with
   | Ok (`Ok files) ->
-    List.iter
-      (fun file ->
-         Format.printf "file: %s@." file;
-         do_parse files)
-      files;
+    List.iter (fun file -> do_parse files |> ignore) files;
     exit 0
   | Error `Term -> exit 1
   | Error `Parse -> exit 124

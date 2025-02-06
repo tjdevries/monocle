@@ -116,9 +116,7 @@ module TableField = struct
   (* AST Helpers *)
   let ename { loc; name; _ } = Default.evar ~loc name.txt
 
-  let params_field ~loc { name; _ } =
-    Default.pexp_ident ~loc (Loc.make ~loc (Ldot (Longident.Lident "Params", name.txt)))
-  ;;
+  let params_field ~loc { name; _ } = CaqtiHelper.make_params_field ~loc name.txt
 end
 
 let make_fields_from_type payload =
@@ -309,35 +307,9 @@ let generate_serializers ~ctxt type_declarations =
 ;;
 
 let generate_caqti_product ~loc (fields : TableField.t list) =
-  let body =
-    Default.pexp_record
-      ~loc
-      (List.map fields ~f:(fun { name; _ } ->
-         let ident = Loc.make ~loc (Lident name.txt) in
-         let expr = Default.pexp_ident ~loc ident in
-         ident, expr))
-      None
-  in
-  let record =
-    List.fold_right fields ~init:body ~f:(fun { name; _ } acc ->
-      Gen.make_positional_fun ~loc name.txt acc)
-  in
-  let product =
-    List.fold_right fields ~init:[%expr proj_end] ~f:(fun field acc ->
-      let name = field.name in
-      let ident = Loc.make ~loc (Lident name.txt) in
-      let access = Default.pexp_field ~loc [%expr record] ident in
-      let param = TableField.params_field ~loc field in
-      Default.pexp_apply
-        ~loc
-        [%expr proj]
-        [ Nolabel, param; Nolabel, [%expr fun record -> [%e access]]; Nolabel, acc ])
-  in
-  [%stri
-    let record =
-      let record = [%e record] in
-      product record @@ [%e product]
-    ;;]
+  CaqtiHelper.Record.derive
+    ~loc
+    (List.map fields ~f:(fun { name; _ } -> CaqtiHelper.Record.record_field ~loc name.txt))
 ;;
 
 let generate_table_module ~loc name (fields : TableField.t list) =

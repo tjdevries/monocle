@@ -30,19 +30,19 @@ Possible solution, is all of the modesl ONLY have the id. ALWAYS.
   - We give you the tools to make that really easy.
 *)
 
-module User = struct
+module Account = struct
   type t =
     { id : int [@primary_key { autoincrement = true }]
     ; name : string
     ; email : string
     }
-  [@@deriving table { name = "users" }]
+  [@@deriving table { name = "accounts" }]
 end
 
 module Chat = struct
   type t =
     { id : int [@primary_key { autoincrement = true }]
-    ; user_id : User.Fields.id [@foreign { on_cascade = `delete }]
+    ; user_id : Account.Fields.id [@foreign { on_cascade = `delete }]
     ; message : string
     }
   [@@deriving table { name = "chats" }]
@@ -53,7 +53,7 @@ module Chat = struct
   module Model = struct
     type t =
       { id : int
-      ; user : User.t
+      ; user : Account.t
       ; message : string
       }
 
@@ -61,7 +61,7 @@ module Chat = struct
       let model id user message = { id; message; user } in
       product model
       @@ proj Params.id (fun record -> record.id)
-      @@ proj User.record (fun record -> record.user)
+      @@ proj Account.record (fun record -> record.user)
       @@ proj Params.message (fun record -> record.message)
       @@ proj_end
     ;;
@@ -79,7 +79,7 @@ module Chat = struct
 
   let user_chats db ~user_id ~f =
     let query =
-      (User.Params.id ->* record) @@ "SELECT chats.* FROM chats WHERE chats.user_id = $1"
+      (Account.Params.id ->* record) @@ "SELECT chats.* FROM chats WHERE chats.user_id = $1"
     in
     Octane.Database.iter db query user_id ~f
   ;;
