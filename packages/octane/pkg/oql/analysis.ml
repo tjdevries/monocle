@@ -1,59 +1,61 @@
 open! Core
 
-(* let get_valid_models ast = *)
-(*   let open Ast in *)
-(*   match ast with *)
-(*   | Select { from = Some from; _ } -> *)
-(*     FromClause.relations from *)
-(*     |> List.filter_map ~f:(function *)
-(*       | Model m -> Some m *)
-(*       | _ -> None) *)
-(*     |> List.dedup_and_sort ~compare:Model.compare *)
-(*   | _ -> [] *)
-(* ;; *)
-(**)
-(* let get_models_from_expression expr = *)
-(*   let open Ast in *)
-(*   let rec search expr acc = *)
-(*     match expr with *)
-(*     | ModelField m -> m :: acc *)
-(*     | BinaryExpression (left, _, right) -> acc |> search left |> search right *)
-(*     | UnaryExpression (_, expr) -> search expr acc *)
-(*     | _ -> acc *)
-(*   in *)
-(*   search expr [] *)
-(* ;; *)
-(**)
-(* let get_used_models ast = *)
-(*   let open Ast in *)
-(*   match ast with *)
-(*   | Select { select = { result_columns; _ }; _ } -> *)
-(*     List.fold_left result_columns ~init:[] ~f:(fun acc -> function *)
-(*       | Expression (expr, _) -> get_models_from_expression expr @ acc *)
-(*       | _ -> acc) *)
-(*     |> List.dedup_and_sort ~compare:ModelField.compare *)
-(* ;; *)
-(**)
-(* let get_invalid_model ast = *)
-(*   let used_models = get_used_models ast in *)
-(*   let valid_models = get_valid_models ast in *)
-(*   List.find used_models ~f:(fun m -> not (List.mem valid_models m.model ~equal:Ast.Model.equal)) *)
-(* ;; *)
-
 type params =
   { named : string list
-  ; positional : int list
+  ; positional : param list
   }
-[@@deriving show]
+and param =
+  { id : int
+  ; ty : Ast.PGTypes.t option
+  }
+[@@deriving show, eq]
+
+let typecheck (statement : Ast.statement) =
+  let find_type (expr : Ast.Expression.t) =
+    match expr with
+    | `model (model, field) -> `model (model, field)
+    | _ -> Fmt.failwith "TODO: find_type %a" Ast.Expression.pp expr
+  in
+  let rec update_expression (expr : Ast.Expression.t) =
+    match expr with
+    | `binary (`param id, _, right) ->
+      let right = find_type right in
+      `binary (`typed_param (right, id), `equal, right)
+    | `binary (left, _, `param id) ->
+      let ty = find_type left in
+      `binary (left, `equal, `typed_param (ty, id))
+    | `binary (left, op, right) ->
+      let left = update_expression left in
+      let right = update_expression right in
+      `binary (left, op, right)
+    | _ -> expr
+  in
+  match statement with
+  | Select select ->
+    let where = Option.map select.where ~f:update_expression in
+    Ast.Select { select with where }
+;;
 
 let of_ast (ast : Ast.statement) =
+  let ast = typecheck ast in
+  let find_param acc id = List.find acc.positional ~f:(fun param -> param.id = id) in
   let open Ast in
   let rec search expr acc =
     match expr with
     | `param pos ->
-      if List.mem acc.positional pos ~equal:Int.equal
+      if Option.is_some @@ find_param acc pos
       then acc
-      else { acc with positional = pos :: acc.positional }
+      else { acc with positional = { id = pos; ty = None } :: acc.positional }
+    | `typed_param (ty, pos) ->
+      let param = { id = pos; ty = Some ty } in
+      begin
+        match find_param acc pos with
+        | Some { ty = Some _; _ } ->
+          (* TODO: Probably should error if the types don't match *)
+          acc
+        | Some { ty = None; _ } -> { acc with positional = param :: acc.positional }
+        | None -> { acc with positional = param :: acc.positional }
+      end
     | `binary (left, _, right) -> acc |> search left |> search right
     | _ -> acc
   in
@@ -62,7 +64,10 @@ let of_ast (ast : Ast.statement) =
   | Select { targets; where; _ } ->
     let acc = List.fold_left ~init:acc ~f:(fun acc expr -> search expr acc) targets in
     let acc = Option.fold ~init:acc ~f:(fun acc where -> search where acc) where in
-    { acc with positional = List.sort acc.positional ~compare:Int.compare }
+    { acc with
+      positional =
+        List.sort acc.positional ~compare:(fun left right -> Int.compare left.id right.id)
+    }
 ;;
 
 (* let get_type_of_expression expr = *)

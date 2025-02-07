@@ -4,10 +4,23 @@ open Core
 
 module Expr = Oql.Ast.Expression
 
-let make_positional_param_expr ~loc i =
-  let ident = Loc.make ~loc (Lident ("p" ^ Int.to_string i)) in
-  Ast_builder.Default.pexp_ident ~loc ident
-;;
+module QueryParam = struct
+  let make_positional_param_expr ~loc i =
+    let ident = Loc.make ~loc (Lident ("p" ^ Int.to_string i)) in
+    Ast_builder.Default.pexp_ident ~loc ident
+  ;;
+
+  let make_param_caqti_type ~loc (param : Oql.Analysis.param) =
+    match param with
+    | { ty = Some `text; _ } -> [%expr string]
+    | { ty = Some `int; _ } -> [%expr int]
+    | { ty = Some (`model (model, `field field)); _ } ->
+      CaqtiHelper.make_params_field ~loc ~model field
+    | { ty = Some (`model (model, `star)); _ } -> failwith "TODO: model.* is not supported"
+    | { ty = None; _ } ->
+      Fmt.failwith "TODO: make_param_caqti_type (%a)" Oql.Analysis.pp_param param
+  ;;
+end
 
 let table_relation ~loc relation =
   let ident = Ldot (Lident relation, "relation") in
@@ -42,12 +55,6 @@ let make_labelled_fun ~loc arg body =
   Ast_builder.Default.pexp_fun ~loc (Labelled arg) None pattern body
 ;;
 
-let make_positional_fun ~loc arg body =
-  let arg_loc = Loc.make ~loc arg in
-  let pattern = Ast_builder.Default.ppat_var ~loc arg_loc in
-  Ast_builder.Default.pexp_fun ~loc Nolabel None pattern body
-;;
-
 let make_optional_fun ~loc arg body =
   let arg_loc = Loc.make ~loc arg in
   let pattern = Ast_builder.Default.ppat_var ~loc arg_loc in
@@ -75,8 +82,8 @@ let rec of_ast ~loc (ast : Ast.statement) =
   | Select select ->
     let query_expr = to_select_string ~loc ~state select in
     let paramslist =
-      List.fold_left state.params.positional ~init:[] ~f:(fun acc pos ->
-        make_positional_param_expr ~loc pos :: acc)
+      List.fold_right state.params.positional ~init:[] ~f:(fun pos acc ->
+        QueryParam.make_positional_param_expr ~loc pos.id :: acc)
     in
     (* TODO: Handle named *)
     (* let paramlist = List.rev_append paramlist params.named in *)
@@ -84,6 +91,7 @@ let rec of_ast ~loc (ast : Ast.statement) =
       match paramslist with
       | [] -> [%expr ()]
       | [ item ] -> item
+      | [ item1; item2 ] -> [%expr [%e item1], [%e item2]]
       | _ -> Fmt.failwith "TODO: more than one positional param"
     in
     (* let idk = Ast_builder.Default.pexp_open *)
@@ -93,7 +101,11 @@ let rec of_ast ~loc (ast : Ast.statement) =
     let encode =
       match state.params.positional with
       | [] -> [%expr unit]
-      | [ param ] -> [%expr int]
+      | [ param ] -> QueryParam.make_param_caqti_type ~loc param
+      | [ p1; p2 ] ->
+        let p1 = QueryParam.make_param_caqti_type ~loc p1 in
+        let p2 = QueryParam.make_param_caqti_type ~loc p2 in
+        [%expr t2 [%e p1] [%e p2]]
       | _ -> Fmt.failwith "TODO: more than one positional param"
     in
     let body =
@@ -107,7 +119,7 @@ let rec of_ast ~loc (ast : Ast.statement) =
     in
     let body =
       List.fold_right state.params.positional ~init:body ~f:(fun pos body ->
-        make_fun ~loc (Fmt.str "p%d" pos) body)
+        make_fun ~loc (Fmt.str "p%d" pos.id) body)
     in
     let body =
       List.fold state.params.named ~init:body ~f:(fun body pos -> make_labelled_fun ~loc pos body)
@@ -187,6 +199,10 @@ and of_expression ~loc ~state (target : Ast.Expression.t) =
   | `param num ->
     let num = Ast_builder.Default.eint ~loc num in
     [%expr Stdlib.Format.sprintf "($%d)" [%e num]]
+  | `typed_param (ty, num) ->
+    let num = Ast_builder.Default.eint ~loc num in
+    let ty = Ast_builder.Default.estring ~loc @@ Ast.PGTypes.show ty in
+    [%expr Stdlib.Format.sprintf "($%d::%s)" [%e num] [%e ty]]
   | _ -> Fmt.failwith "unsupported expression: %a" Expr.pp target
 
 and of_binary_expression ~loc ~state left op right =
@@ -220,7 +236,9 @@ and of_bitop ~loc op =
   match op with
   | `add -> Ast_builder.Default.estring ~loc "+"
   | `equal -> Ast_builder.Default.estring ~loc "="
-  | _ -> failwith "bitop"
+  | `not_equal -> Ast_builder.Default.estring ~loc "<>"
+  | `op_and -> Ast_builder.Default.estring ~loc "AND"
+  | `op_or -> Ast_builder.Default.estring ~loc "OR"
 
 (* and of_model_field ~loc m = *)
 (*   let open Ast in *)

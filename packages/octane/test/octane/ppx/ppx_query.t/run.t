@@ -1,7 +1,6 @@
 Pretty print the file
 
   $ pp_query ./lib/table.ml > ./lib/table-generated.ml
-  parse: {"version":170000,"stmts":[{"stmt":{"SelectStmt":{"targetList":[{"ResTarget":{"val":{"ColumnRef":{"fields":[{"String":{"sval":"Account"}},{"String":{"sval":"id"}}],"location":7}},"location":7}},{"ResTarget":{"val":{"ColumnRef":{"fields":[{"String":{"sval":"Account"}},{"String":{"sval":"name"}}],"location":19}},"location":19}}],"fromClause":[{"RangeVar":{"relname":"Account","inh":true,"relpersistence":"p","location":37}}],"limitOption":"LIMIT_OPTION_DEFAULT","op":"SETOP_NONE"}}}]}
   $ ocamlformat ./lib/table-generated.ml
   module Account = struct
     type t =
@@ -147,7 +146,6 @@ Pretty print the file
 < language: ocaml
 
   $ pp_query ./lib/where_id.ml | ocamlformat --impl -
-  parse: {"version":170000,"stmts":[{"stmt":{"SelectStmt":{"targetList":[{"ResTarget":{"val":{"ColumnRef":{"fields":[{"String":{"sval":"Account"}},{"String":{"sval":"id"}}],"location":7}},"location":7}},{"ResTarget":{"val":{"ColumnRef":{"fields":[{"String":{"sval":"Account"}},{"String":{"sval":"name"}}],"location":19}},"location":19}}],"fromClause":[{"RangeVar":{"relname":"Account","inh":true,"relpersistence":"p","location":37}}],"whereClause":{"A_Expr":{"kind":"AEXPR_OP","name":[{"String":{"sval":"="}}],"lexpr":{"ColumnRef":{"fields":[{"String":{"sval":"Account"}},{"String":{"sval":"id"}}],"location":51}},"rexpr":{"ParamRef":{"number":1,"location":64}},"location":62}},"limitOption":"LIMIT_OPTION_DEFAULT","op":"SETOP_NONE"}}}]}
   module Account = struct
     type t = { id : int } [@@deriving table { name = "users" }]
   
@@ -225,7 +223,7 @@ Pretty print the file
       let open Caqti_request.Infix in
       let open Caqti_type.Std in
       let query =
-        (int ->* record)
+        (Account.Params.id ->* record)
         @@ Stdlib.Format.sprintf
              "SELECT %s FROM %s %s"
              (Stdlib.String.concat
@@ -251,48 +249,111 @@ Pretty print the file
 < language: ocaml
 
   $ pp_query ./lib/where_positional.ml | ocamlformat --impl -
-  parse: {"version":170000,"stmts":[{"stmt":{"SelectStmt":{"targetList":[{"ResTarget":{"val":{"ColumnRef":{"fields":[{"String":{"sval":"Account"}},{"String":{"sval":"name"}}],"location":7}},"location":7}},{"ResTarget":{"val":{"ParamRef":{"number":2,"location":21}},"location":21}}],"fromClause":[{"RangeVar":{"relname":"Account","inh":true,"relpersistence":"p","location":29}}],"whereClause":{"A_Expr":{"kind":"AEXPR_OP","name":[{"String":{"sval":"="}}],"lexpr":{"ColumnRef":{"fields":[{"String":{"sval":"Account"}},{"String":{"sval":"id"}}],"location":43}},"rexpr":{"ParamRef":{"number":1,"location":56}},"location":54}},"limitOption":"LIMIT_OPTION_DEFAULT","op":"SETOP_NONE"}}}]}
-  json: {"version":170000,"stmts":[{"stmt":{"SelectStmt":{"targetList":[{"ResTarget":{"val":{"ColumnRef":{"fields":[{"String":{"sval":"Account"}},{"String":{"sval":"name"}}],"location":7}},"location":7}},{"ResTarget":{"val":{"ParamRef":{"number":2,"location":21}},"location":21}}],"fromClause":[{"RangeVar":{"relname":"Account","inh":true,"relpersistence":"p","location":29}}],"whereClause":{"A_Expr":{"kind":"AEXPR_OP","name":[{"String":{"sval":"="}}],"lexpr":{"ColumnRef":{"fields":[{"String":{"sval":"Account"}},{"String":{"sval":"id"}}],"location":43}},"rexpr":{"ParamRef":{"number":1,"location":56}},"location":54}},"limitOption":"LIMIT_OPTION_DEFAULT","op":"SETOP_NONE"}}}]}
-  Uncaught exception:
-    
-    (Failure "unknown res_target")
+  module Account = struct
+    type t =
+      { id : int
+      ; name : string
+      }
+    [@@deriving table { name = "users" }]
   
-  Raised at Stdlib.failwith in file "stdlib.ml", line 29, characters 17-33
-  Called from Base__List.map in file "src/list.ml", line 433, characters 15-18
-  Called from Oql__Ast.map_res_target in file "packages/octane/pkg/oql/ast.ml", lines 181-188, characters 4-43
-  Called from Base__List.map in file "src/list.ml", line 433, characters 15-18
-  Called from Base__List.map in file "src/list.ml", line 433, characters 22-45
-  Called from Oql__Ast.map_select in file "packages/octane/pkg/oql/ast.ml", line 166, characters 16-85
-  Called from Base__List.map in file "src/list.ml", line 433, characters 15-18
-  Called from Base__List.map in file "src/list.ml", line 433, characters 15-18
-  Called from Oql__Ast.statements in file "packages/octane/pkg/oql/ast.ml", lines 150-153, characters 4-95
-  Re-raised at Oql__Ast.statements in file "packages/octane/pkg/oql/ast.ml", line 158, characters 4-11
-  Called from Oql__Ast.parse in file "packages/octane/pkg/oql/ast.ml", line 250, characters 14-29
-  Called from Ppx_octane__Ppx_query.query_rule.(fun) in file "packages/octane/pkg/ppx_octane/ppx_query.ml", line 59, characters 12-31
-  Called from Ppxlib__Ast_pattern_generated.pconst_string.(fun) in file "src/ast_pattern_generated.ml", line 906, characters 41-56
-  Called from Ppxlib__Ast_pattern.(^::).(fun) in file "src/ast_pattern.ml", line 110, characters 18-33
-  Called from Ppxlib__Ast_pattern.(^::).(fun) in file "src/ast_pattern.ml", line 110, characters 18-33
-  Called from Ppxlib__Ast_pattern.map_result.(fun) in file "src/ast_pattern.ml", line 170, characters 53-71
-  Called from Ppxlib__Ast_pattern.parse_res in file "src/ast_pattern.ml", line 9, characters 9-36
-  Called from Ppxlib__Extension.For_context.convert_inline_res.(fun) in file "src/extension.ml", line 274, characters 8-66
-  Called from Ppxlib__Context_free.map_top_down#structure.loop in file "src/context_free.ml", line 758, characters 16-73
-  Called from Ppxlib__Context_free.map_top_down#structure.loop.(fun) in file "src/context_free.ml", line 829, characters 20-49
-  Called from Ppxlib__Common.With_errors.(>>=) in file "src/common.ml", line 266, characters 21-24
-  Called from Ppxlib__Driver.Transform.merge_into_generic_mappers.map_impl in file "src/driver.ml", line 281, characters 6-73
-  Called from Ppxlib__Driver.apply_transforms.(fun) in file "src/driver.ml", line 568, characters 19-29
-  Called from Stdlib__List.fold_left in file "list.ml", line 123, characters 24-34
-  Called from Ppxlib__Driver.apply_transforms in file "src/driver.ml", lines 544-580, characters 4-62
-  Called from Ppxlib__Driver.map_structure_gen in file "src/driver.ml", lines 693-697, characters 4-56
-  Called from Ppxlib__Driver.process_ast in file "src/driver.ml", lines 1055-1056, characters 10-55
-  Called from Ppxlib__Driver.process_file in file "src/driver.ml", lines 1100-1101, characters 15-30
-  Called from Ppxlib__Driver.standalone in file "src/driver.ml", line 1532, characters 9-27
-  Re-raised at Location.report_exception.loop in file "parsing/location.ml", line 979, characters 14-25
-  Called from Ppxlib__Driver.standalone in file "src/driver.ml", line 1535, characters 4-61
-  Called from Dune__exe__Pp_query in file "packages/octane/test/bin/pp_query.ml", line 1, characters 9-36
+    include struct
+      [@@@ocaml.warning "-60"]
+  
+      let _ = fun (_ : t) -> ()
+  
+      open Caqti_request.Infix
+      open Caqti_type.Std
+  
+      module Fields = struct
+        let id = "id"
+        let _ = id
+        let name = "name"
+        let _ = name
+  
+        type id = int
+        type name = string
+      end
+  
+      module Params = struct
+        let id = Caqti_type.Std.int
+        let _ = id
+        let name = Caqti_type.Std.string
+        let _ = name
+  
+        type id = int
+        type name = string
+      end
+  
+      module Table = struct
+        let drop = (unit ->. unit) @@ "DROP TABLE IF EXISTS users CASCADE"
+        let _ = drop
+        let drop db = Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.exec drop ()) db
+        let _ = drop
+        let create = (unit ->. unit) @@ "CREATE TABLE users (id INTEGER NOT NULL, name TEXT NOT NULL)"
+        let _ = create
+        let create db = Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.exec create ()) db
+        let _ = create
+      end
+  
+      let relation = "users"
+      let _ = relation
+  
+      let record =
+        let record id name = { id; name } in
+        product record @@ proj Params.id (fun record -> record.id) (proj Params.name (fun record -> record.name) proj_end)
+      ;;
+  
+      let _ = record
+  
+      let insert ~id ~name db =
+        let query = (t2 Params.id Params.name ->! record) @@ "INSERT INTO users (id, name) VALUES (?, ?) RETURNING *" in
+        Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.find query (id, name)) db
+      ;;
+  
+      let _ = insert
+      let () = ()
+      let () = ()
+      let () = ()
+    end [@@ocaml.doc "@inline"] [@@merlin.hide]
+  end
+  
+  module AccountByID = struct
+    open Caqti_request.Infix
+    open Caqti_type.Std
+  
+    type t = { name : Account.Fields.name }
+  
+    let record =
+      let record name = { name } in
+      product record @@ proj Account.Params.name (fun record -> record.name) proj_end
+    ;;
+  
+    let query db p1 =
+      let open Caqti_request.Infix in
+      let open Caqti_type.Std in
+      let query =
+        (int ->* record)
+        @@ Stdlib.Format.sprintf
+             "SELECT %s FROM %s %s"
+             (Stdlib.String.concat ", " [ Stdlib.Format.sprintf "%s.%s" Account.relation "name" ])
+             (Core.String.concat ~sep:", " [ Account.relation ])
+             (Stdlib.Format.sprintf
+                "WHERE %s"
+                (Stdlib.Format.sprintf
+                   "(%s %s %s)"
+                   (Stdlib.Format.sprintf "%s.%s" Account.relation "id")
+                   "="
+                   (Stdlib.Format.sprintf "($%d::%s)" 1 "int")))
+      in
+      let params = p1 in
+      Octane.Database.collect db query params
+    ;;
+  
+    let raw = "SELECT Account.name FROM Account WHERE Account.id = $1::int"
+  end [@warning "-32"]
 < language: ocaml
 
   $ pp_query ./lib/invalid_model.ml | ocamlformat --impl -
-  parse: {"version":170000,"stmts":[{"stmt":{"SelectStmt":{"targetList":[{"ResTarget":{"val":{"ColumnRef":{"fields":[{"String":{"sval":"Post"}},{"String":{"sval":"id"}}],"location":7}},"location":7}}],"fromClause":[{"RangeVar":{"relname":"Account","inh":true,"relpersistence":"p","location":20}}],"limitOption":"LIMIT_OPTION_DEFAULT","op":"SETOP_NONE"}}}]}
   module ShouldError = struct
     open Caqti_request.Infix
     open Caqti_type.Std
@@ -324,7 +385,6 @@ Pretty print the file
 < language: ocaml
 
   $ pp_query ./lib/simple_join.ml | ocamlformat --impl -
-  parse: {"version":170000,"stmts":[{"stmt":{"SelectStmt":{"targetList":[{"ResTarget":{"val":{"ColumnRef":{"fields":[{"String":{"sval":"Account"}},{"String":{"sval":"name"}}],"location":8}},"location":8}},{"ResTarget":{"val":{"ColumnRef":{"fields":[{"String":{"sval":"Post"}},{"String":{"sval":"content"}}],"location":22}},"location":22}}],"fromClause":[{"JoinExpr":{"jointype":"JOIN_INNER","larg":{"RangeVar":{"relname":"Post","inh":true,"relpersistence":"p","location":40}},"rarg":{"RangeVar":{"relname":"Account","inh":true,"relpersistence":"p","location":56}},"quals":{"A_Expr":{"kind":"AEXPR_OP","name":[{"String":{"sval":"="}}],"lexpr":{"ColumnRef":{"fields":[{"String":{"sval":"Account"}},{"String":{"sval":"id"}}],"location":67}},"rexpr":{"ColumnRef":{"fields":[{"String":{"sval":"Post"}},{"String":{"sval":"author"}}],"location":80}},"location":78}}}}],"limitOption":"LIMIT_OPTION_DEFAULT","op":"SETOP_NONE"}}}]}
   module AuthorAndContent = struct
     open Caqti_request.Infix
     open Caqti_type.Std
@@ -706,3 +766,77 @@ Pretty print the file
   end
 < language: ocaml
 
+  $ pp_query ./lib/anded_join.ml | ocamlformat --impl -
+  module ChatsForUserByName = struct
+    open Caqti_request.Infix
+    open Caqti_type.Std
+  
+    type t =
+      { id : Chat.Fields.id
+      ; name : Account.Fields.name
+      ; message : Chat.Fields.message
+      }
+  
+    let record =
+      let record id name message = { id; name; message } in
+      product record
+      @@ proj
+           Chat.Params.id
+           (fun record -> record.id)
+           (proj
+              Account.Params.name
+              (fun record -> record.name)
+              (proj Chat.Params.message (fun record -> record.message) proj_end))
+    ;;
+  
+    let query db p1 p2 =
+      let open Caqti_request.Infix in
+      let open Caqti_type.Std in
+      let query =
+        (t2 Account.Params.name Account.Params.id ->* record)
+        @@ Stdlib.Format.sprintf
+             "SELECT %s FROM %s %s"
+             (Stdlib.String.concat
+                ", "
+                [ Stdlib.Format.sprintf "%s.%s" Chat.relation "id"
+                ; Stdlib.Format.sprintf "%s.%s" Account.relation "name"
+                ; Stdlib.Format.sprintf "%s.%s" Chat.relation "message"
+                ])
+             (Stdlib.Format.sprintf
+                "%s %s %s ON %s"
+                Chat.relation
+                "INNER JOIN"
+                Account.relation
+                (Stdlib.Format.sprintf
+                   "(%s %s %s)"
+                   (Stdlib.Format.sprintf "%s.%s" Account.relation "id")
+                   "="
+                   (Stdlib.Format.sprintf "%s.%s" Chat.relation "user_id")))
+             (Stdlib.Format.sprintf
+                "WHERE %s"
+                (Stdlib.Format.sprintf
+                   "(%s %s %s)"
+                   (Stdlib.Format.sprintf
+                      "(%s %s %s)"
+                      (Stdlib.Format.sprintf "%s.%s" Account.relation "name")
+                      "="
+                      (Stdlib.Format.sprintf "($%d)" 1))
+                   "AND"
+                   (Stdlib.Format.sprintf
+                      "(%s %s %s)"
+                      (Stdlib.Format.sprintf "%s.%s" Account.relation "id")
+                      "="
+                      (Stdlib.Format.sprintf "($%d)" 2))))
+      in
+      let params = p1, p2 in
+      Octane.Database.collect db query params
+    ;;
+  
+    let raw =
+      "SELECT Chat.id, Account.name, Chat.message\n\
+      \    FROM Chat INNER JOIN Account ON Account.id = Chat.user_id\n\
+      \    WHERE Account.name = $1 AND Account.id = $2"
+    ;;
+  end [@warning "-32"]
+
+< language: ocaml

@@ -238,7 +238,7 @@ let generate_create_function ~loc name (fields : TableField.t list) =
       let query = [%e caqti_query] in
       Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.find query [%e params]) db]
   in
-  let body = Gen.make_positional_fun ~loc "db" body in
+  let body = GenHelper.make_positional_fun ~loc "db" body in
   List.fold_right fields ~init:body ~f:(fun { name; nullable; _ } acc ->
     match nullable with
     | true -> Gen.make_optional_fun ~loc name.txt acc

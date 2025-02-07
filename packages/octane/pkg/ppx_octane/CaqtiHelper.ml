@@ -44,7 +44,7 @@ module Record = struct
     in
     let record =
       List.fold_right fields ~init:body ~f:(fun { name; _ } acc ->
-        Gen.make_positional_fun ~loc name acc)
+        GenHelper.make_positional_fun ~loc name acc)
     in
     let product =
       List.fold_right fields ~init:[%expr proj_end] ~f:(fun { name; model; _ } acc ->

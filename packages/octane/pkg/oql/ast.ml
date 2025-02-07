@@ -29,8 +29,40 @@ module Operator = struct
     [ `equal
     | `not_equal
     | `add
+    | `op_and
+    | `op_or
     ]
-  [@@deriving show { with_path = false }]
+  [@@deriving eq, show { with_path = false }]
+end
+
+module Model = struct
+  type t = [ `model of string * field ]
+  and field =
+    [ `star
+    | `field of string
+    ]
+  [@@deriving eq, show { with_path = false }]
+end
+
+module PGTypes = struct
+  type t =
+    [ `int
+    | `text
+    | Model.t
+    ]
+  [@@deriving eq]
+
+  let pp fmt = function
+    | `int -> Format.fprintf fmt "int"
+    | `text -> Format.fprintf fmt "text"
+    | `model (model, field) -> Format.fprintf fmt "model(%s, %a)" model Model.pp_field field
+  ;;
+
+  let show = function
+    | `int -> "int"
+    | `text -> "text"
+    | `model (model, field) -> Fmt.str "model(%s, %a)" model Model.pp_field field
+  ;;
 end
 
 module Expression = struct
@@ -42,9 +74,11 @@ module Expression = struct
     [ `star
     | `field of string
     ]
-  and param = [ `param of int ]
+  and param =
+    [ `param of int
+    | `typed_param of PGTypes.t * int
+    ]
   and column = [ `column of string option * string option * field ]
-  and model = [ `model of string * field ]
   and table = [ `table of string ]
   and join_kind =
     [ `inner
@@ -56,7 +90,7 @@ module Expression = struct
 
   type t =
     [ column
-    | model
+    | Model.t
     | constant
     | param
     | `binary of t * Operator.binary * t
@@ -223,7 +257,44 @@ and map_expression (key, data) =
     end
   | "ColumnRef" -> map_column_ref data
   | "ParamRef" -> map_param_ref data
+  | "TypeCast" -> map_type_cast data
+  | "BoolExpr" -> map_bool_expression data
   | _ -> Fmt.failwith "TODO: map_expression: %s" key
+
+and map_bool_expression data =
+  (* {"boolop":"AND_EXPR","args":[{"A_Expr":{"kind ":"AEXPR_OP","name":[{"String":{"sval":"="}}],"lexpr":{"ColumnRef":{"fields":[{"String":{"sval":"Account"}},{"String":{"sval":"name"}}],"location":115}},"rexpr":{"ParamRef":{"number":1,"location":130}},"location" :128}},{"A_Expr":{"kind":"AEXPR_OP","name":[{"String":{"sval":"="}}],"lexpr":{"ColumnRef":{"fields":[{"String":{"sval":"Account"}},{"String":{"sval":"id"}}],"location":137}},"rexpr":{"ParamRef":{"number":2,"locat ion":150}},"location":148}}],"location":133} *)
+  let _ = data in
+  let boolop = data |> member "boolop" |> to_string |> map_boolop in
+  let args =
+    data
+    |> member "args"
+    |> to_list
+    |> List.map ~f:(fun item -> item |> to_assoc |> List.hd_exn |> map_expression)
+  in
+  match args with
+  | [ left; right ] -> `binary (left, boolop, right)
+  | _ -> Fmt.failwith "TODO: map_bool_expression"
+
+and map_boolop = function
+  | "AND_EXPR" -> `op_and
+  | "OR_EXPR" -> `op_or
+  | _ -> Fmt.failwith "TODO: map_boolop"
+
+and map_type_cast data =
+  let arg = data |> member_object "arg" |> map_expression in
+  let ty = data |> member "typeName" |> map_type_name in
+  match arg with
+  | `param param -> `typed_param (ty, param)
+  | _ -> Fmt.failwith "TODO: map_type_cast"
+
+and map_type_name data =
+  (* "typeName":{"names":[{"String":{"sval":"pg_catalog"}},{"String":{"sval":"int4"}}],"typemod":-1,"location":132}... *)
+  let names = data |> member "names" |> to_list |> List.map ~f:Access.sval in
+  match names with
+  | [ "pg_catalog"; "int4" ] -> `int
+  | [ "text" ] -> `text
+  | [ "pg_catalog"; "text" ] -> `text
+  | _ -> Fmt.failwith "TODO: map_type_name: %s" (Yojson.Basic.to_string data)
 
 and map_param_ref data =
   let position = data |> member "number" |> to_int in

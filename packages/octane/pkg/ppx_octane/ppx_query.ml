@@ -82,6 +82,7 @@ let query_rule extender_name (kind : kind) =
               | `binary _ -> failwith "TODO: binary"
               | `join _ -> failwith "TODO: join"
               | `param _ -> failwith "TODO: param"
+              | `typed_param _ -> failwith "TODO: typed_param"
               | #Oql.Ast.Expression.constant -> None)
             targets
         in

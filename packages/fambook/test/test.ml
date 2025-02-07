@@ -56,10 +56,16 @@ let fails_to_insert_chat_with_invalid_user db () =
   | Error _ -> ()
 ;;
 
-let%query (module ChatsForUser) =
+let%query (module ChatsForUserByID) =
   "SELECT Chat.id, Account.name, Chat.message
     FROM Chat INNER JOIN Account ON Account.id = Chat.user_id
-    WHERE Account.id = $1"
+    WHERE Account.id = $1::int"
+;;
+
+let%query (module ChatsForUserByName) =
+  "SELECT Chat.id, Account.name, Chat.message
+    FROM Chat INNER JOIN Account ON Account.id = Chat.user_id
+    WHERE Account.name = $1 AND Account.id = $2"
 ;;
 
 let can_retreive_with_custom_query db () =
@@ -71,11 +77,16 @@ let can_retreive_with_custom_query db () =
   let> user = insert_user_teej db in
   let> _ = Chat.insert db ~user_id:user.id ~message:"Hello world" in
   let> _ = Chat.insert db ~user_id:user.id ~message:"Second Message" in
-  let> chats = ChatsForUser.query db user.id in
+  let> chats = ChatsForUserByID.query db user.id in
   let chats = Array.of_list chats in
-  Alcotest.(check int) "chats length" 2 (Array.length chats);
-  Alcotest.(check string) "chats.0.message" "Hello world" chats.(0).message;
-  Alcotest.(check string) "chats.1.message" "Second Message" chats.(1).message;
+  Alcotest.(check int) "id: chats length" 2 (Array.length chats);
+  Alcotest.(check string) "id: chats.0.message" "Hello world" chats.(0).message;
+  Alcotest.(check string) "id: chats.1.message" "Second Message" chats.(1).message;
+  let> chats = ChatsForUserByName.query db user.name user.id in
+  let chats = Array.of_list chats in
+  Alcotest.(check int) "name: chats length" 2 (Array.length chats);
+  Alcotest.(check string) "name: chats.0.message" "Hello world" chats.(0).message;
+  Alcotest.(check string) "name: chats.1.message" "Second Message" chats.(1).message;
   ()
 ;;
 
