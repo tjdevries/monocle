@@ -10,6 +10,8 @@ open Ppxlib
 open Ast_builder
 module Database = Drivers.Postgres
 
+let pp_core_type fmt ty = Format.fprintf fmt "%s" (Ppx_deriving.string_of_core_type ty)
+
 module Util = struct
   let throw ~loc fmt =
     Format.kasprintf (fun str -> Location.Error.raise @@ Location.Error.make ~loc ~sub:[] str) fmt
@@ -25,7 +27,7 @@ module FieldKind = struct
         ; on_delete : string
         }
     | Column
-  [@@deriving eq]
+  [@@deriving eq, show]
 
   let is_fillable = function
     | PrimaryKey _ -> false
@@ -42,13 +44,15 @@ end
 module TableField = struct
   type t =
     { label_declaration : label_declaration
-    ; loc : Location.t
-    ; name : string Loc.t
+          [@printer fun fmt { pld_name; _ } -> Format.fprintf fmt "%s" pld_name.txt]
+    ; loc : Location.t [@opaque]
+    ; name : string Loc.t [@opaque]
     ; ty : core_type
     ; kind : FieldKind.t
     ; nullable : bool
       (** Is the field nullable? *)
     }
+  [@@deriving show]
 
   let make label_declaration =
     let kind =
@@ -96,6 +100,7 @@ module TableField = struct
 
   (* SQL Helpers *)
   let create_field ~loc t =
+    (* Fmt.epr "create_field: %a@." pp t; *)
     let name = t.name.txt in
     let column_type = coretype_to_create_field ~loc t.ty in
     let column_attributes =

@@ -66,9 +66,8 @@ let query_rule extender_name (kind : kind) =
         let fields =
           List.filter_map
             ~f:(function
-              | Constant _ -> None
-              | Column col -> assert false
-              | Model (model, Field field) ->
+              | `column col -> assert false
+              | `model (model, `field field) ->
                 let open Ast_builder.Default in
                 (* TODO: get the right location? *)
                 (* let m = ModelField.model_name model_field in *)
@@ -79,7 +78,11 @@ let query_rule extender_name (kind : kind) =
                 let ident = Ldot (ident, field) in
                 let type_ : core_type = ptyp_constr ~loc (Loc.make ~loc ident) [] in
                 Some (label_declaration ~loc ~name:(Loc.make ~loc field) ~mutable_:Immutable ~type_)
-              | Model (model, Star) -> failwith "TODO: star")
+              | `model (model, `star) -> failwith "TODO: star"
+              | `binary _ -> failwith "TODO: binary"
+              | `join _ -> failwith "TODO: join"
+              | `param _ -> failwith "TODO: param"
+              | #Oql.Ast.Expression.constant -> None)
             targets
         in
         (* TODO: This gets models that are referenced but NOT selected *)
@@ -107,7 +110,7 @@ let query_rule extender_name (kind : kind) =
               CaqtiHelper.Record.derive
                 ~loc
                 (List.filter_map targets ~f:(function
-                   | Model (model, Field field) ->
+                   | `model (model, `field field) ->
                      Some (CaqtiHelper.Record.record_field ~loc ~model field)
                    | _ -> None))
             in

@@ -1,5 +1,5 @@
-(* open Core *)
-(**)
+open! Core
+
 (* let get_valid_models ast = *)
 (*   let open Ast in *)
 (*   match ast with *)
@@ -46,37 +46,25 @@ type params =
   }
 [@@deriving show]
 
-(* let find_params (ast : Ast.t) = *)
-(*   let open Ast in *)
-(*   let rec search expr acc = *)
-(*     match expr with *)
-(*     | PositionalParam pos -> *)
-(*       if List.mem acc.positional pos ~equal:Int.equal *)
-(*       then acc *)
-(*       else { acc with positional = pos :: acc.positional } *)
-(*     | NamedParam named -> *)
-(*       if List.mem acc.named named ~equal:String.equal *)
-(*       then acc *)
-(*       else { acc with named = named :: acc.named } *)
-(*     | BinaryExpression (left, _, right) -> acc |> search left |> search right *)
-(*     | UnaryExpression (_, expr) -> search expr acc *)
-(*     | FunctionCall (_, _) -> failwith "function call" *)
-(*     | StringLiteral _ | BitString _ | TypeCast _ | Index (_, _) | Null | _ -> acc *)
-(*   in *)
-(*   match ast with *)
-(*   | Select { select = { result_columns; _ }; from = Some _; where } -> *)
-(*     let expressions = *)
-(*       List.filter_map result_columns ~f:(function *)
-(*         | Expression (expr, _) -> Some expr *)
-(*         | _ -> None) *)
-(*     in *)
-(*     let acc = { named = []; positional = [] } in *)
-(*     let acc = List.fold_left ~init:acc ~f:(fun acc expr -> search expr acc) expressions in *)
-(*     let acc = Option.fold ~init:acc ~f:(fun acc where -> search where acc) where in *)
-(*     { acc with positional = List.sort acc.positional ~compare:Int.compare } *)
-(*   | _ -> assert false *)
-(* ;; *)
-(**)
+let of_ast (ast : Ast.statement) =
+  let open Ast in
+  let rec search expr acc =
+    match expr with
+    | `param pos ->
+      if List.mem acc.positional pos ~equal:Int.equal
+      then acc
+      else { acc with positional = pos :: acc.positional }
+    | `binary (left, _, right) -> acc |> search left |> search right
+    | _ -> acc
+  in
+  let acc = { named = []; positional = [] } in
+  match ast with
+  | Select { targets; where; _ } ->
+    let acc = List.fold_left ~init:acc ~f:(fun acc expr -> search expr acc) targets in
+    let acc = Option.fold ~init:acc ~f:(fun acc where -> search where acc) where in
+    { acc with positional = List.sort acc.positional ~compare:Int.compare }
+;;
+
 (* let get_type_of_expression expr = *)
 (*   let open Ast in *)
 (*   match expr with *)
@@ -84,7 +72,7 @@ type params =
 (*   (* | ColumnReference (Table (Module m), f) as e -> Some e *) *)
 (*   | _ -> None *)
 (* ;; *)
-(**)
+
 (* let get_type_of_named_param ast param = *)
 (*   let open Ast in *)
 (*   let rec search expr = *)
@@ -102,14 +90,14 @@ type params =
 (*   | Select { where = Some where; _ } -> search where *)
 (*   | _ -> None *)
 (* ;; *)
-(**)
+
 (* let print_params str = *)
 (*   let ast = Run.parse str in *)
 (*   let ast = Result.ok_or_failwith ast in *)
 (*   let params = find_params ast in *)
 (*   Fmt.pr "%a\n" pp_params params *)
 (* ;; *)
-(**)
+
 (* let%expect_test "positional params" = *)
 (*   print_params "SELECT User.id FROM User WHERE User.id = $id"; *)
 (*   [%expect {| { Analysis.named = ["id"]; positional = [] } |}] *)

@@ -8,3 +8,4 @@ module User = struct
 end
 
 let x db = User.insert ~user:"tjdevries" ~email:"tjdevries@gmail.com" db
+let _ = x

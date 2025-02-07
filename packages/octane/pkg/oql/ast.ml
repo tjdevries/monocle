@@ -4,6 +4,18 @@ open Yojson.Basic.Util
 exception UnexpectedFormat of string
 let unexpected_format json = UnexpectedFormat (Fmt.str "Unexpected format: %a" Yojson.Basic.pp json)
 
+let member_object member_name json =
+  match member member_name json |> to_assoc with
+  | [ obj ] -> obj
+  | _ -> raise (unexpected_format json)
+;;
+
+let member_object_opt member_name json =
+  match member member_name json with
+  | `Null -> None
+  | _ -> Some (member_object member_name json)
+;;
+
 module Access = struct
   let sval json =
     match to_assoc json with
@@ -12,29 +24,74 @@ module Access = struct
   ;;
 end
 
-type constant =
-  [ `string of string
-  | `int of int
-  ]
-and field =
-  [ `star
-  | `field of string
-  ]
-and column = [ `column of string option * string option * field ]
-and model = [ `model of string * field ]
-and binary_op =
-  | Equal
-  | NotEqual
-[@@deriving show { with_path = false }]
+module Operator = struct
+  type binary =
+    [ `equal
+    | `not_equal
+    | `add
+    ]
+  [@@deriving show { with_path = false }]
+end
 
 module Expression = struct
+  type constant =
+    [ `string of string
+    | `int of int
+    ]
+  and field =
+    [ `star
+    | `field of string
+    ]
+  and param = [ `param of int ]
+  and column = [ `column of string option * string option * field ]
+  and model = [ `model of string * field ]
+  and table = [ `table of string ]
+  and join_kind =
+    [ `inner
+    | `left
+    | `right
+    | `full
+    ]
+  [@@deriving show { with_path = false }]
+
   type t =
     [ column
     | model
     | constant
-    | `binary of t * binary_op * t
+    | param
+    | `binary of t * Operator.binary * t
+    | `join of join_expression
     ]
+  and selectable =
+    [ table
+    | `join of join_expression
+    ]
+  and join_expression =
+    { left : selectable
+    ; right : selectable
+    ; kind : join_kind
+    ; qualifications : t
+    }
   [@@deriving show { with_path = false }]
+
+  (* Should be same as join in type t, exposed for type safety *)
+  type join = [ `join of join_expression ] [@@deriving show { with_path = false }]
+
+  module Selectable = struct
+    type t = selectable
+
+    let rec relation (x : t) : string =
+      match x with
+      | `table relation -> relation
+      | `join { left; _ } -> relation left
+    ;;
+  end
+
+  let something (x : t) : join =
+    match x with
+    | `join _ as x -> x
+    | _ -> failwith "TODO"
+  ;;
 
   let of_constant constant : [> constant ] =
     match to_assoc constant with
@@ -69,30 +126,12 @@ type t = statement list
 
 and statement = Select of select_statement
 and select_statement =
-  { from : select_from list
-  ; targets : Expression.t list
-  ; limit_option : string
+  { targets : Expression.t list
+  ; from : Expression.selectable list
   ; op : string
+  ; where : Expression.t option
+  ; limit_option : string
   }
-
-and join_expression =
-  { left : select_from
-  ; right : select_from
-  ; kind : join_kind
-  ; qualifications : qualification list
-  }
-
-and join_kind =
-  | Inner
-  | Left
-  | Right
-  | Full
-
-and qualification = Expression of Expression.t
-
-and select_from =
-  | Relation of string
-  | Join of join_expression
 [@@deriving show { with_path = false }]
 
 (* Example
@@ -126,9 +165,10 @@ and map_statement (name, data) =
 and map_select data =
   let targets = data |> member "targetList" |> to_list |> List.map ~f:map_target_list in
   let from = data |> member "fromClause" |> to_list |> List.map ~f:map_from_clause in
+  let where = data |> member_object_opt "whereClause" |> Option.map ~f:map_expression in
   let limit_option = data |> member "limitOption" |> to_string in
   let op = data |> member "op" |> to_string in
-  Select { from; targets; limit_option; op }
+  Select { from; targets; limit_option; op; where }
 
 and map_target_list data =
   let key, value = data |> to_assoc |> List.hd_exn in
@@ -154,52 +194,54 @@ and map_column_ref data = data |> member "fields" |> to_list |> Expression.of_fi
 
 and map_constant data = Expression.of_constant data
 
-and map_from_clause data : select_from =
+and map_from_clause data : Expression.selectable =
   map_by_key data (fun key value ->
     match key with
     | "RangeVar" -> map_range_var value
-    | "JoinExpr" -> Join (map_join_expr value)
-    | _ -> failwith "unknown from_clause")
+    | "JoinExpr" -> map_join_expr value
+    | key -> Fmt.failwith "TODO: from_clause: %s" key)
 
 and map_range_var data =
   let relation = data |> member "relname" |> to_string in
-  Relation relation
+  `table relation
 
 and map_join_expr value =
   let kind = value |> member "jointype" |> to_string |> join_kind_of_string in
   let left = value |> member "larg" |> map_from_clause in
   let right = value |> member "rarg" |> map_from_clause in
-  let qualifications = value |> member "quals" |> to_assoc |> List.map ~f:map_qualification in
-  { left; right; kind; qualifications }
+  let qualifications = value |> member_object "quals" |> map_expression in
+  `join { left; right; kind; qualifications }
 
-and map_qualification (key, value) =
+and map_expression (key, data) =
   match key with
-  | "A_Expr" -> Expression (map_expression value)
-  | _ -> failwith "TODO: map_qualification"
+  | "A_Expr" ->
+    let kind = data |> member "kind" |> to_string in
+    begin
+      match kind with
+      | "AEXPR_OP" -> map_binary_expression data
+      | _ -> failwith "TODO: map_expression"
+    end
+  | "ColumnRef" -> map_column_ref data
+  | "ParamRef" -> map_param_ref data
+  | _ -> Fmt.failwith "TODO: map_expression: %s" key
 
-and map_expression data =
-  (* {"A_Expr":{"kind":"AEXPR_OP","name":[{"String":{"sval":"="}}],"lexpr":{"ColumnRef":{"fields":[{"String":{"sval":"Account"}},{"String":{"sval":"id"}}],"location":67}},"rexpr":{"ColumnRef":{"fields":[{"String":{"sval":"Post"}},{"String":{"sval":"author"}}],"location":80}},"location":78}} *)
-  Fmt.epr "map_expression: %s@." (Yojson.Basic.to_string data);
-  Fmt.epr "  %s@." (Yojson.Basic.to_string (member "kind" data));
-  let kind = data |> member "kind" |> to_string in
-  match kind with
-  | "AEXPR_OP" -> map_binary_expression data
-  | _ -> failwith "TODO: map_expression"
+and map_param_ref data =
+  let position = data |> member "number" |> to_int in
+  `param position
 
 and map_binary_expression data =
-  let open Expression in
   let op = data |> member "name" |> to_list |> List.hd_exn |> Access.sval in
   let op =
     match op with
-    | "=" -> Equal
-    | _ -> failwith "TODO: map_binary_expression"
+    | "=" -> `equal
+    | _ -> Fmt.failwith "TODO(map_binary_expression): %s" op
   in
-  let left = data |> member "lexpr" |> map_expression in
-  let right = data |> member "rexpr" |> map_expression in
+  let left = data |> member "lexpr" |> to_assoc |> List.hd_exn |> map_expression in
+  let right = data |> member "rexpr" |> to_assoc |> List.hd_exn |> map_expression in
   `binary (left, op, right)
 
 and join_kind_of_string = function
-  | "JOIN_INNER" -> Inner
+  | "JOIN_INNER" -> `inner
   | _ -> failwith "TODO: join_kind_of_string"
 ;;
 

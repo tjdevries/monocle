@@ -365,7 +365,6 @@ let gen_serialize_impl ~ctxt type_decl =
 ;;
 
 let generate_impl ~ctxt (_rec_flag, type_declarations) =
-  let loc = loc ~ctxt in
   List.map (gen_serialize_impl ~ctxt) type_declarations
 ;;
 

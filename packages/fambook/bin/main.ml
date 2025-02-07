@@ -8,11 +8,11 @@ let ( let= ) x f =
   | _ -> assert false
 ;;
 
-let ( let@ ) x f =
-  match x with
-  | Some result -> f result
-  | None -> failwith "Nope"
-;;
+(* let ( let@ ) x f = *)
+(*   match x with *)
+(*   | Some result -> f result *)
+(*   | None -> failwith "Nope" *)
+(* ;; *)
 
 (* let items%route = "GET /items/user_id:UserID" *)
 module UserChats : Route.T = struct
@@ -26,7 +26,7 @@ module UserChats : Route.T = struct
     | _ -> None
   ;;
 
-  let handle ~(ctx : Route.context) (request : Request.t) (t : t) =
+  let handle ~ctx:_ (request : Request.t) (t : t) =
     match request.meth with
     | `GET ->
       let open Fambook.Models.Chat in
@@ -36,7 +36,6 @@ module UserChats : Route.T = struct
       let page = SSR.Chats.page { user = t.user_id; chats } in
       Response.of_string @@ JSX.render page
     | `POST ->
-      let open Fambook.Models.Chat in
       let= message = Piaf.Body.to_string request.body in
       let query = Uri.query_of_encoded message in
       let message =
@@ -62,7 +61,15 @@ end
 let routes : (module Route.T) list = [ (module UserChats) ]
 
 module Account = Fambook.Models.Account
+module Chat = Fambook.Models.Chat
+
 let%query (module UserInfoQuery) = "SELECT Account.id, Account.name, Account.email FROM Account"
+
+let%query (module ChatsForUser) =
+  "SELECT Chat.id, Account.name, Chat.user_id, Chat.message
+    FROM Chat INNER JOIN Account ON Account.id = Chat.user_id
+    WHERE Account.id = 1"
+;;
 
 let inner pool =
   let open Fambook.Models in
@@ -73,6 +80,7 @@ let inner pool =
   let* _ = Chat.Table.drop pool in
   let* _ = Chat.Table.create pool in
   let* chat = Chat.insert pool ~user_id:user1.id ~message:"Hello world" in
+  let* _ = Chat.insert pool ~user_id:user1.id ~message:"Second Message" in
   let* _ = Chat.update pool { chat with message = "updated" } in
   let* loaded = Chat.Model.read pool 1 in
   let _ =
@@ -91,6 +99,11 @@ let inner pool =
   List.iter
     (fun UserInfoQuery.{ id; name; email } -> Format.printf "%d, %s (%s)@." id name email)
     info;
+  let* chats = ChatsForUser.query pool in
+  List.iter
+    (fun ChatsForUser.{ id; user_id; message; name } ->
+       Format.printf "FROM QUERY: %d, %s (%d): %s@." id name user_id message)
+    chats;
   Ok ()
 ;;
 

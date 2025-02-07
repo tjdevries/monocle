@@ -7,4 +7,4 @@ module Account = struct
   [@@deriving table { name = "accounts" }]
 end
 
-let%query (module AccountNameQuery) = "SELECT Account.id, Account.name FROM Account WHERE id = 5"
+let%query (module AccountNameQuery) = "SELECT Account.id, Account.name FROM Account"

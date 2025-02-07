@@ -29,7 +29,7 @@ let run ~port ~env ~sw ~db routes =
     let request = params.request in
     match handler request with
     | Some (Ok response) -> response
-    | Some (Error err) ->
+    | Some (Error _) ->
       Piaf.Response.of_string
         ~body:
           (Fmt.str

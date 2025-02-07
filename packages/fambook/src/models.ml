@@ -1,5 +1,3 @@
-open Drive
-
 (*
    user: User.Model.t
 user: User.t [@model]
@@ -42,7 +40,7 @@ end
 module Chat = struct
   type t =
     { id : int [@primary_key { autoincrement = true }]
-    ; user_id : Account.Fields.id [@foreign { on_cascade = `delete }]
+    ; user_id : Account.Fields.id [@references { on_cascade = `delete }]
     ; message : string
     }
   [@@deriving table { name = "chats" }]
