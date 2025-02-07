@@ -1,11 +1,9 @@
 open! Core
 
-type params =
-  { named : string list
-  ; positional : param list
-  }
+type params = param list
 and param =
   { id : int
+  ; name : string option
   ; ty : Ast.PGTypes.t option
   }
 [@@deriving show, eq]
@@ -36,89 +34,39 @@ let typecheck (statement : Ast.statement) =
     Ast.Select { select with where }
 ;;
 
-let of_ast (ast : Ast.statement) =
+let of_ast (transformed : Ast.transformed) (ast : Ast.statement) =
+  let _ = transformed in
   let ast = typecheck ast in
-  let find_param acc id = List.find acc.positional ~f:(fun param -> param.id = id) in
+  let find_param acc id = List.find acc ~f:(fun param -> param.id = id) in
+  let get_name id =
+    List.nth transformed.found (id - 1)
+    |> Option.map ~f:(String.substr_replace_all ~pattern:"$" ~with_:"")
+  in
   let open Ast in
   let rec search expr acc =
     match expr with
-    | `param pos ->
-      if Option.is_some @@ find_param acc pos
-      then acc
-      else { acc with positional = { id = pos; ty = None } :: acc.positional }
+    | `param pos -> begin
+      match find_param acc pos with
+      | Some _ -> acc
+      | None -> { id = pos; name = get_name pos; ty = None } :: acc
+    end
     | `typed_param (ty, pos) ->
-      let param = { id = pos; ty = Some ty } in
+      let param = { id = pos; name = get_name pos; ty = Some ty } in
       begin
         match find_param acc pos with
         | Some { ty = Some _; _ } ->
           (* TODO: Probably should error if the types don't match *)
           acc
-        | Some { ty = None; _ } -> { acc with positional = param :: acc.positional }
-        | None -> { acc with positional = param :: acc.positional }
+        | Some { ty = None; _ } -> param :: acc
+        | None -> param :: acc
       end
     | `binary (left, _, right) -> acc |> search left |> search right
     | _ -> acc
   in
-  let acc = { named = []; positional = [] } in
+  let acc = [] in
   match ast with
   | Select { targets; where; _ } ->
     let acc = List.fold_left ~init:acc ~f:(fun acc expr -> search expr acc) targets in
     let acc = Option.fold ~init:acc ~f:(fun acc where -> search where acc) where in
-    { acc with
-      positional =
-        List.sort acc.positional ~compare:(fun left right -> Int.compare left.id right.id)
-    }
+    List.sort acc ~compare:(fun left right -> Int.compare left.id right.id)
 ;;
-
-(* let get_type_of_expression expr = *)
-(*   let open Ast in *)
-(*   match expr with *)
-(*   | ModelField _ as expr -> Some expr *)
-(*   (* | ColumnReference (Table (Module m), f) as e -> Some e *) *)
-(*   | _ -> None *)
-(* ;; *)
-
-(* let get_type_of_named_param ast param = *)
-(*   let open Ast in *)
-(*   let rec search expr = *)
-(*     match expr with *)
-(*     | BinaryExpression (left, _op, right) when Ast.equal_expression right param -> *)
-(*       get_type_of_expression left *)
-(*     | BinaryExpression (left, _op, _right) when Ast.equal_expression left param -> *)
-(*       failwith "param matches left" *)
-(*     | BinaryExpression (_left, _op, _right) -> None *)
-(*     | UnaryExpression (_, expr) -> search expr *)
-(*     | FunctionCall (_, _) -> failwith "function call" *)
-(*     | _ -> None *)
-(*   in *)
-(*   match ast with *)
-(*   | Select { where = Some where; _ } -> search where *)
-(*   | _ -> None *)
-(* ;; *)
-
-(* let print_params str = *)
-(*   let ast = Run.parse str in *)
-(*   let ast = Result.ok_or_failwith ast in *)
-(*   let params = find_params ast in *)
-(*   Fmt.pr "%a\n" pp_params params *)
-(* ;; *)
-
-(* let%expect_test "positional params" = *)
-(*   print_params "SELECT User.id FROM User WHERE User.id = $id"; *)
-(*   [%expect {| { Analysis.named = ["id"]; positional = [] } |}] *)
-(* ;; *)
-(**)
-(* let%expect_test "multiple positional params" = *)
-(*   print_params "SELECT User.id, $1, $2 FROM User"; *)
-(*   [%expect {| { Analysis.named = []; positional = [1; 2] } |}] *)
-(* ;; *)
-(**)
-(* let%expect_test "named params" = *)
-(*   print_params "SELECT User.id FROM User WHERE User.id = $1"; *)
-(*   [%expect {| { Analysis.named = []; positional = [1] } |}] *)
-(* ;; *)
-(**)
-(* let%expect_test "duplicate named params" = *)
-(*   print_params "SELECT User.id FROM User WHERE $1 = $1"; *)
-(*   [%expect {| { Analysis.named = []; positional = [1] } |}] *)
-(* ;; *)

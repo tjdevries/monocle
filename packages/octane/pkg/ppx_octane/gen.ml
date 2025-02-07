@@ -10,6 +10,11 @@ module QueryParam = struct
     Ast_builder.Default.pexp_ident ~loc ident
   ;;
 
+  let make_named_param_expr ~loc name i =
+    let ident = Loc.make ~loc (Lident name) in
+    Ast_builder.Default.pexp_ident ~loc ident
+  ;;
+
   let make_param_caqti_type ~loc (param : Oql.Analysis.param) =
     match param with
     | { ty = Some `text; _ } -> [%expr string]
@@ -43,10 +48,10 @@ let get_param ~loc correlation field =
   | _ -> failwith "get_param: correlation"
 ;;
 
-let make_fun ~loc arg body =
+let make_fun ~loc ~label arg body =
   let arg = Loc.make ~loc arg in
   let pattern = Ast_builder.Default.ppat_var ~loc arg in
-  Ast_builder.Default.pexp_fun ~loc Nolabel None pattern body
+  Ast_builder.Default.pexp_fun ~loc label None pattern body
 ;;
 
 let make_labelled_fun ~loc arg body =
@@ -75,14 +80,14 @@ let type_of_expression_to_generated_expression ~loc type_of_expr expr =
 
 type state = { params : Analysis.params }
 
-let rec of_ast ~loc (ast : Ast.statement) =
+let rec of_ast ~loc transformed (ast : Ast.statement) =
   (* let params = Analysis.find_params ast in *)
-  let state = { params = Analysis.of_ast ast } in
+  let state = { params = Analysis.of_ast transformed ast } in
   match ast with
   | Select select ->
     let query_expr = to_select_string ~loc ~state select in
     let paramslist =
-      List.fold_right state.params.positional ~init:[] ~f:(fun pos acc ->
+      List.fold_right state.params ~init:[] ~f:(fun pos acc ->
         QueryParam.make_positional_param_expr ~loc pos.id :: acc)
     in
     (* TODO: Handle named *)
@@ -94,12 +99,8 @@ let rec of_ast ~loc (ast : Ast.statement) =
       | [ item1; item2 ] -> [%expr [%e item1], [%e item2]]
       | _ -> Fmt.failwith "TODO: more than one positional param"
     in
-    (* let idk = Ast_builder.Default.pexp_open *)
-    (* let params_expr = Ast_builder.Default.pexp_open ~loc idk params_expr in *)
-    (* let f = Ast_helper.Exp.fun_ in *)
-    (* let arg_label *)
     let encode =
-      match state.params.positional with
+      match state.params with
       | [] -> [%expr unit]
       | [ param ] -> QueryParam.make_param_caqti_type ~loc param
       | [ p1; p2 ] ->
@@ -118,13 +119,19 @@ let rec of_ast ~loc (ast : Ast.statement) =
         Octane.Database.collect db query params]
     in
     let body =
-      List.fold_right state.params.positional ~init:body ~f:(fun pos body ->
-        make_fun ~loc (Fmt.str "p%d" pos.id) body)
+      List.fold_right state.params ~init:body ~f:(fun pos body ->
+        let label =
+          match pos.name with
+          | Some name -> Labelled name
+          | None -> Nolabel
+        in
+        make_fun ~loc ~label (Fmt.str "p%d" pos.id) body)
     in
-    let body =
-      List.fold state.params.named ~init:body ~f:(fun body pos -> make_labelled_fun ~loc pos body)
-    in
-    let f = make_fun ~loc "db" body in
+    (* let body = *)
+    (*   List.fold state.params ~init:body ~f:(fun body pos -> *)
+    (*     make_labelled_fun ~loc pos.name body) *)
+    (* in *)
+    let f = make_fun ~loc ~label:Nolabel "db" body in
     [%stri let query = [%e f]]
 
 and of_from_clause ~loc ~state (from : Ast.Expression.selectable) =
@@ -210,26 +217,8 @@ and of_binary_expression ~loc ~state left op right =
   let op = of_bitop ~loc op in
   let right = of_expression ~loc ~state right in
   [%expr Stdlib.Format.sprintf "(%s %s %s)" [%e left] [%e op] [%e right]]
-(*   let _ = get_param ~loc correlation field in *)
-(* match left, right with *)
-(* | ModelField model_field, NamedParam param -> *)
-(*   let left = of_model_field ~loc model_field in *)
-(*   let right = of_named_param ~loc ~state param in *)
-(*   [%expr Stdlib.Format.sprintf "(%s = %s)" [%e left] [%e right]] *)
-(* | ModelField model_field, PositionalParam pos -> [%expr "TODO"] *)
-(* | ModelField left, ModelField right -> *)
-(*   let left = of_model_field ~loc left in *)
-(*   let right = of_model_field ~loc right in *)
-(*   [%expr Stdlib.Format.sprintf "(%s = %s)" [%e left] [%e right]] *)
-(* | _ -> failwith "binary expression: not supported" *)
-
-and of_named_param ~loc ~state (name : string) =
-  let named_position, _ = List.findi_exn state.params.named ~f:(fun _ n -> String.(n = name)) in
-  let position = List.length state.params.positional + named_position + 1 in
-  of_position_param ~loc ~state position
 
 and of_position_param ~loc ~state pos =
-  (* make_positional_param_expr ~loc pos *)
   Ast_builder.Default.estring ~loc ("$" ^ Stdlib.string_of_int pos)
 
 and of_bitop ~loc op =

@@ -10,7 +10,7 @@ let print_parsed_file fpath =
     | _ -> Fmt.failwith "cannot read file %a" Fpath.pp fpath
   in
   match Run.parse contents with
-  | Ok parsed -> Fmt.pr "%a@." Ast.pp parsed
+  | Ok (_, parsed) -> Fmt.pr "%a@." Ast.pp parsed
   | Error _ -> Fmt.pr "cannot parse file %a" Fpath.pp fpath
 ;;
 

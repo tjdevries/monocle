@@ -316,11 +316,42 @@ and join_kind_of_string = function
   | _ -> failwith "TODO: join_kind_of_string"
 ;;
 
-let parse result =
+let replace_all_named_params_with_positional s =
+  (* TODO: either don't mix named and positional params,
+     or find the positional first and then start our count *)
+  let found = ref [] in
+  let re = Re.Perl.compile_pat ~opts:[ `Caseless ] "\\$[a-zA-Z]+" in
+  let s =
+    Re.replace
+      re
+      ~f:(fun group ->
+        let name = Re.Group.get group 0 in
+        match List.findi !found ~f:(fun _ n -> String.equal n name) with
+        | Some (i, _) -> Fmt.str "$%d" i
+        | None ->
+          found := name :: !found;
+          Fmt.str "$%d" (List.length !found))
+      s
+  in
+  s, !found
+;;
+
+type transformed =
+  { original : string
+  ; transformed : string
+  ; found : string list
+  }
+
+let transform s =
+  let updated, found = replace_all_named_params_with_positional s in
+  { original = s; transformed = updated; found }
+;;
+
+let parse (transformed : transformed) result =
   let json = Yojson.Basic.from_string result in
   let stmts = statements json in
   let stmts = Stdlib.List.flatten stmts in
-  Ok stmts
+  Ok (transformed, stmts)
 ;;
 
 (* let of_protobuf (stmts : PG.raw_stmt list) = () *)

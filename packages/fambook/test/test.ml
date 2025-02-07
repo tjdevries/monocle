@@ -65,7 +65,7 @@ let%query (module ChatsForUserByID) =
 let%query (module ChatsForUserByName) =
   "SELECT Chat.id, Account.name, Chat.message
     FROM Chat INNER JOIN Account ON Account.id = Chat.user_id
-    WHERE Account.name = $1 AND Account.id = $2"
+    WHERE Account.name = $1 AND Account.name = $1"
 ;;
 
 let can_retreive_with_custom_query db () =
@@ -82,11 +82,30 @@ let can_retreive_with_custom_query db () =
   Alcotest.(check int) "id: chats length" 2 (Array.length chats);
   Alcotest.(check string) "id: chats.0.message" "Hello world" chats.(0).message;
   Alcotest.(check string) "id: chats.1.message" "Second Message" chats.(1).message;
-  let> chats = ChatsForUserByName.query db user.name user.id in
+  let> chats = ChatsForUserByName.query db user.name in
   let chats = Array.of_list chats in
   Alcotest.(check int) "name: chats length" 2 (Array.length chats);
   Alcotest.(check string) "name: chats.0.message" "Hello world" chats.(0).message;
   Alcotest.(check string) "name: chats.1.message" "Second Message" chats.(1).message;
+  ()
+;;
+
+let%query (module ChatsForUserByNameParams) =
+  "SELECT Chat.id, Account.name, Chat.message
+    FROM Chat INNER JOIN Account ON Account.id = Chat.user_id
+    WHERE Account.name = $amazing AND Account.name = $redundant"
+;;
+
+let can_retrieve_with_named_params db () =
+  let> () = recreate_database db in
+  let> user = insert_user_teej db in
+  let> _ = Chat.insert db ~user_id:user.id ~message:"Hello world" in
+  let> _ = Chat.insert db ~user_id:user.id ~message:"Second Message" in
+  let> chats = ChatsForUserByNameParams.query db ~amazing:user.name ~redundant:user.name in
+  let chats = Array.of_list chats in
+  Alcotest.(check int) "id: chats length" 2 (Array.length chats);
+  Alcotest.(check string) "id: chats.0.message" "Hello world" chats.(0).message;
+  Alcotest.(check string) "id: chats.1.message" "Second Message" chats.(1).message;
   ()
 ;;
 
@@ -103,7 +122,10 @@ let main env sw =
         ; "fails to insert with invalid user", `Quick, fails_to_insert_chat_with_invalid_user db
         ] )
     ; ( "custom query"
-      , [ "can retrieve with custom query", `Quick, can_retreive_with_custom_query db ] )
+      , [ "can retrieve with custom query", `Quick, can_retreive_with_custom_query db
+        ; "can retrieve with named params", `Quick, can_retrieve_with_named_params db
+        ] )
+    ; Test_transform.cases
     ]
 ;;
 

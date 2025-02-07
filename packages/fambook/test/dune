@@ -1,5 +1,5 @@
 (tests
  (names test)
- (libraries alcotest fambook caqti-driver-postgresql)
+ (libraries alcotest fambook caqti-driver-postgresql oql)
  (preprocess
   (pps ppx_octane)))

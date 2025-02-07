@@ -1,7 +1,7 @@
 (library
  (name oql)
  (public_name oql)
- (libraries fmt ppxlib core PGQuery yojson)
+ (libraries fmt ppxlib core PGQuery yojson re)
  (inline_tests)
  (preprocess
   (pps ppx_deriving.std ppx_jane)))

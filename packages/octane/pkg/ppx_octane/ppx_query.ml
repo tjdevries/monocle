@@ -55,7 +55,7 @@ let query_rule extender_name (kind : kind) =
     @@ fun ~ctxt pat query ->
     let loc = Expansion_context.Extension.extension_point_loc ctxt in
     let query = Loc.txt query in
-    let ast =
+    let transformed, ast =
       match Oql.Run.parse query with
       | Ok ast -> ast
       | Error msg -> Util.throw ~loc "Failed to parse query: %s" msg
@@ -106,7 +106,7 @@ let query_rule extender_name (kind : kind) =
             (* let type_decl = { type_decl with ptype_attributes = [ attributes ] } in *)
             let type_decl = Ast_builder.Default.pstr_type ~loc Recursive [ type_decl ] in
             let ast = List.hd_exn ast in
-            let query_fn = Gen.of_ast ~loc ast in
+            let query_fn = Gen.of_ast ~loc transformed ast in
             let record =
               CaqtiHelper.Record.derive
                 ~loc
