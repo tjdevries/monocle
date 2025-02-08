@@ -1,0 +1,6 @@
+(library
+ (name Shared)
+ (public_name fambook.shared)
+ (libraries caqti caqti-eio drive serde octane)
+ (preprocess
+  (pps ppx_octane)))

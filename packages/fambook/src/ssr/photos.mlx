@@ -1,12 +1,14 @@
 open JSX
 
+open Fambook.Models
+
 type t =
   { user : string
-  ; chats : string list
+  ; photos : Photos.t list
   }
 
-let render_chats chats =
-  let messages = List.map (fun msg -> <div>(string msg)</div>) chats.chats in
+let render_photos chats =
+  let messages = List.map (fun msg -> <div>(string msg)</div>) chats.photos in
   list messages
 ;;
 
@@ -29,6 +31,6 @@ let page chats =
   <div class_="Hello">
     <h1>(string @@ "Hello World! Chat Messages for " ^ chats.user)</h1>
     <div>node</div>
-    <div id="chats">(render_chats chats)</div>
+    <div id="chats">(render_photos chats)</div>
   </div>
 ;;
