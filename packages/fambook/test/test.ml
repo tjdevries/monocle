@@ -6,18 +6,22 @@ let ( let> ) x f =
 
 module Models = Fambook.Models
 module Account = Models.Account
-module Chat = Models.Chat
+module Photo = Models.Photo
 
 let url = Uri.of_string "postgresql://tjdevries:password@localhost:5432/fambook_dev"
 
 let insert_user_teej db = Models.Account.insert db ~name:"tjdevries" ~email:"tjdevries@example.com"
 let insert_user_prime db = Models.Account.insert db ~name:"prime" ~email:"prime@example.com"
 
+let insert_photo db ?(comment = "Hello world") (user : Account.t) url =
+  Models.Photo.insert db ~user_id:user.id ~url ~comment
+;;
+
 let recreate_database db =
   let> () = Models.Account.Table.drop db in
-  let> () = Models.Chat.Table.drop db in
+  let> () = Models.Photo.Table.drop db in
   let> () = Models.Account.Table.create db in
-  let> () = Models.Chat.Table.create db in
+  let> () = Models.Photo.Table.create db in
   Ok ()
 ;;
 
@@ -43,69 +47,75 @@ let insert_two_accounts db () =
 let insert_one_chat db () =
   let> () = recreate_database db in
   let> user = Models.Account.insert db ~name:"tjdevries" ~email:"tjdevries@example.com" in
-  let> chat = Models.Chat.insert db ~user_id:user.id ~message:"Hello world" in
-  Alcotest.(check int) "chat user id" user.id chat.user_id;
-  Alcotest.(check string) "chat message" "Hello world" chat.message;
+  let> photo = insert_photo db user "https://picsum.photos/200/300" in
+  Alcotest.(check int) "chat user id" user.id photo.user_id;
+  Alcotest.(check string) "chat message" "Hello world" photo.comment;
   ()
 ;;
 
 let fails_to_insert_chat_with_invalid_user db () =
   let> () = recreate_database db in
-  match Models.Chat.insert db ~user_id:420 ~message:"Hello world" with
+  match
+    insert_photo
+      db
+      ~comment:"Hello world"
+      { id = 420; name = "tjdevries"; email = "tjdevries@example.com" }
+      "https://picsum.photos/200/300"
+  with
   | Ok _ -> Alcotest.fail "unexpected success"
   | Error _ -> ()
 ;;
 
-let%query (module ChatsForUserByID) =
-  "SELECT Chat.id, Account.name, Chat.message
-    FROM Chat INNER JOIN Account ON Account.id = Chat.user_id
+let%query (module PhotosForUserByID) =
+  "SELECT Photo.id, Account.name, Photo.comment
+    FROM Photo INNER JOIN Account ON Account.id = Photo.user_id
     WHERE Account.id = $1::int"
 ;;
 
-let%query (module ChatsForUserByName) =
-  "SELECT Chat.id, Account.name, Chat.message
-    FROM Chat INNER JOIN Account ON Account.id = Chat.user_id
+let%query (module PhotosForUserByName) =
+  "SELECT Photo.id, Account.name, Photo.comment
+    FROM Photo INNER JOIN Account ON Account.id = Photo.user_id
     WHERE Account.name = $1 AND Account.name = $1"
 ;;
 
 let can_retreive_with_custom_query db () =
   let> () = recreate_database db in
   let> prime = insert_user_prime db in
-  let> _ = Chat.insert db ~user_id:prime.id ~message:"<not included>" in
-  let> _ = Chat.insert db ~user_id:prime.id ~message:"<not included>" in
-  let> _ = Chat.insert db ~user_id:prime.id ~message:"<not included>" in
+  let> _ = insert_photo db prime "https://picsum.photos/200/300" in
+  let> _ = insert_photo db prime "https://picsum.photos/200/300" in
+  let> _ = insert_photo db prime "https://picsum.photos/200/300" in
   let> user = insert_user_teej db in
-  let> _ = Chat.insert db ~user_id:user.id ~message:"Hello world" in
-  let> _ = Chat.insert db ~user_id:user.id ~message:"Second Message" in
-  let> chats = ChatsForUserByID.query db user.id in
-  let chats = Array.of_list chats in
-  Alcotest.(check int) "id: chats length" 2 (Array.length chats);
-  Alcotest.(check string) "id: chats.0.message" "Hello world" chats.(0).message;
-  Alcotest.(check string) "id: chats.1.message" "Second Message" chats.(1).message;
-  let> chats = ChatsForUserByName.query db user.name in
-  let chats = Array.of_list chats in
-  Alcotest.(check int) "name: chats length" 2 (Array.length chats);
-  Alcotest.(check string) "name: chats.0.message" "Hello world" chats.(0).message;
-  Alcotest.(check string) "name: chats.1.message" "Second Message" chats.(1).message;
+  let> _ = insert_photo db user "https://picsum.photos/200/300" ~comment:"Hello world" in
+  let> _ = insert_photo db user "https://picsum.photos/200/300" ~comment:"Second Message" in
+  let> photos = PhotosForUserByID.query db user.id in
+  let photos = Array.of_list photos in
+  Alcotest.(check int) "id: photos length" 2 (Array.length photos);
+  Alcotest.(check string) "id: photos.0.comment" "Hello world" photos.(0).comment;
+  Alcotest.(check string) "id: photos.1.comment" "Second Message" photos.(1).comment;
+  let> photos = PhotosForUserByName.query db user.name in
+  let photos = Array.of_list photos in
+  Alcotest.(check int) "name: photos length" 2 (Array.length photos);
+  Alcotest.(check string) "name: photos.0.comment" "Hello world" photos.(0).comment;
+  Alcotest.(check string) "name: photos.1.comment" "Second Message" photos.(1).comment;
   ()
 ;;
 
-let%query (module ChatsForUserByNameParams) =
-  "SELECT Chat.id, Account.name, Chat.message
-    FROM Chat INNER JOIN Account ON Account.id = Chat.user_id
+let%query (module PhotosForUserByNameParams) =
+  "SELECT Photo.id, Account.name, Photo.comment
+    FROM Photo INNER JOIN Account ON Account.id = Photo.user_id
     WHERE Account.name = $amazing AND Account.name = $redundant"
 ;;
 
 let can_retrieve_with_named_params db () =
   let> () = recreate_database db in
   let> user = insert_user_teej db in
-  let> _ = Chat.insert db ~user_id:user.id ~message:"Hello world" in
-  let> _ = Chat.insert db ~user_id:user.id ~message:"Second Message" in
-  let> chats = ChatsForUserByNameParams.query db ~amazing:user.name ~redundant:user.name in
-  let chats = Array.of_list chats in
-  Alcotest.(check int) "id: chats length" 2 (Array.length chats);
-  Alcotest.(check string) "id: chats.0.message" "Hello world" chats.(0).message;
-  Alcotest.(check string) "id: chats.1.message" "Second Message" chats.(1).message;
+  let> _ = insert_photo db user "https://picsum.photos/200/300" ~comment:"Hello world" in
+  let> _ = insert_photo db user "https://picsum.photos/200/300" ~comment:"Second Message" in
+  let> photos = PhotosForUserByNameParams.query db ~amazing:user.name ~redundant:user.name in
+  let photos = Array.of_list photos in
+  Alcotest.(check int) "id: photos length" 2 (Array.length photos);
+  Alcotest.(check string) "id: photos.0.comment" "Hello world" photos.(0).comment;
+  Alcotest.(check string) "id: photos.1.comment" "Second Message" photos.(1).comment;
   ()
 ;;
 

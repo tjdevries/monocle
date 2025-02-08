@@ -1,5 +1,5 @@
 open Drive
-module SSR = Fambook.App.SSR
+module SSR = Fambook.SSR
 
 let ( let* ) = Result.bind
 let ( let= ) x f =
@@ -23,8 +23,8 @@ module UserPhotos : Route.T = struct
   let handle ~ctx:_ (request : Request.t) (t : t) =
     match request.meth with
     | `GET ->
-      let chats = [] in
-      let page = SSR.Photos.page { user = t.user_id; chats } in
+      let photos = [] in
+      let page = SSR.Photos.page { user = t.user_id; photos } in
       Response.of_string @@ JSX.render page
     | `POST ->
       let= message = Piaf.Body.to_string request.body in
@@ -42,8 +42,8 @@ module UserPhotos : Route.T = struct
       (* let= _ = insert ctx.db ~username:t.user_id ~message in *)
       (* let= messages = user_messages ctx.db ~username:t.user_id in *)
       (* let chats = List.map (fun { message; _ } -> message) messages in *)
-      let chats = [] in
-      let page = SSR.Photos.render_photos { user = "hello"; chats } in
+      let photos = [] in
+      let page = SSR.Photos.render_photos { user = "hello"; photos } in
       Response.of_string ~content_type:"text/html" ~fragment:true @@ JSX.render page
     | _ -> Response.of_string "NOPE"
   ;;

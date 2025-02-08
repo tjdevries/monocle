@@ -1,6 +1,6 @@
 (library
  (name fambook)
- (package fambook)
+ (public_name fambook)
  (libraries caqti caqti-eio fambook.ssr fambook.shared drive serde octane)
  (preprocess
   (pps ppx_octane)))

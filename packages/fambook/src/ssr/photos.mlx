@@ -1,14 +1,14 @@
-open JSX
+open Shared.Models
 
-open Fambook.Models
+open JSX
 
 type t =
   { user : string
-  ; photos : Photos.t list
+  ; photos : Photo.t list
   }
 
-let render_photos chats =
-  let messages = List.map (fun msg -> <div>(string msg)</div>) chats.photos in
+let render_photos (chats : t) =
+  let messages = Core.List.map ~f:(fun msg -> <div>(string msg.url)</div>) chats.photos in
   list messages
 ;;
 

@@ -1,6 +1,6 @@
 (library
  (name SSR)
  (public_name fambook.ssr)
- (libraries html_of_jsx)
+ (libraries core html_of_jsx fambook.shared)
  (preprocess
   (pps html_of_jsx.ppx -htmx)))
