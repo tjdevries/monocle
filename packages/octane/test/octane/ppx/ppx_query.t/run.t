@@ -838,5 +838,60 @@ Pretty print the file
       \    WHERE Account.name = $1 AND Account.id = $2"
     ;;
   end [@warning "-32"]
+< language: ocaml
 
+
+  $ pp_query ./lib/model_star.ml > ./lib/model_star_generated.ml
+  $ cat ./lib/model_star_generated.ml
+  module AccountNameQuery =
+    ((struct
+        open Caqti_request.Infix
+        open Caqti_type.Std
+        type t = {
+          account: Account.t }
+        let record =
+          let record account = { account } in
+          (product record) @@
+            (proj Account.record (fun record -> record.account) proj_end)
+        let query db =
+          let open Caqti_request.Infix in
+            let open Caqti_type.Std in
+              let query =
+                (unit ->* record) @@
+                  (Stdlib.Format.sprintf "SELECT %s FROM %s %s"
+                     (Stdlib.String.concat ", "
+                        [Stdlib.Format.sprintf "%s.%s" Account.relation "*"])
+                     (Core.String.concat ~sep:", " [Account.relation]) "") in
+              let params = () in Octane.Database.collect db query params
+        let raw = "SELECT Account.* FROM Account"
+      end)[@warning "-32"])
+  $ pp_query ./lib/model_star.ml | ocamlformat --impl -
+  module AccountNameQuery = struct
+    open Caqti_request.Infix
+    open Caqti_type.Std
+  
+    type t = { account : Account.t }
+  
+    let record =
+      let record account = { account } in
+      product record @@ proj Account.record (fun record -> record.account) proj_end
+    ;;
+  
+    let query db =
+      let open Caqti_request.Infix in
+      let open Caqti_type.Std in
+      let query =
+        (unit ->* record)
+        @@ Stdlib.Format.sprintf
+             "SELECT %s FROM %s %s"
+             (Stdlib.String.concat ", " [ Stdlib.Format.sprintf "%s.%s" Account.relation "*" ])
+             (Core.String.concat ~sep:", " [ Account.relation ])
+             ""
+      in
+      let params = () in
+      Octane.Database.collect db query params
+    ;;
+  
+    let raw = "SELECT Account.* FROM Account"
+  end [@warning "-32"]
 < language: ocaml

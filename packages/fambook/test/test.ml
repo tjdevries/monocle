@@ -1,8 +1,4 @@
-let ( let> ) x f =
-  match x with
-  | Ok x -> f x
-  | Error err -> Alcotest.failf "Unexpected error: %s" (Caqti_error.show err)
-;;
+open Prelude
 
 module Models = Fambook.Models
 module Account = Models.Account
@@ -15,14 +11,6 @@ let insert_user_prime db = Models.Account.insert db ~name:"prime" ~email:"prime@
 
 let insert_photo db ?(comment = "Hello world") (user : Account.t) url =
   Models.Photo.insert db ~user_id:user.id ~url ~comment
-;;
-
-let recreate_database db =
-  let> () = Models.Account.Table.drop db in
-  let> () = Models.Photo.Table.drop db in
-  let> () = Models.Account.Table.create db in
-  let> () = Models.Photo.Table.create db in
-  Ok ()
 ;;
 
 let insert_one_account db () =
@@ -136,6 +124,7 @@ let main env sw =
         ; "can retrieve with named params", `Quick, can_retrieve_with_named_params db
         ] )
     ; Test_transform.cases
+    ; Test_model.cases db
     ]
 ;;
 

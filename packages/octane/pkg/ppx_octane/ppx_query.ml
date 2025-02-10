@@ -78,7 +78,16 @@ let query_rule extender_name (kind : kind) =
                 let ident = Ldot (ident, field) in
                 let type_ : core_type = ptyp_constr ~loc (Loc.make ~loc ident) [] in
                 Some (label_declaration ~loc ~name:(Loc.make ~loc field) ~mutable_:Immutable ~type_)
-              | `model (model, `star) -> failwith "TODO: star"
+              | `model (model, `star) ->
+                let open Ast_builder.Default in
+                let ident = Ldot (Lident model, "t") in
+                let type_ : core_type = ptyp_constr ~loc (Loc.make ~loc ident) [] in
+                Some
+                  (label_declaration
+                     ~loc
+                     ~name:(Loc.make ~loc (String.lowercase model))
+                     ~mutable_:Immutable
+                     ~type_)
               | `binary _ -> failwith "TODO: binary"
               | `join _ -> failwith "TODO: join"
               | `param _ -> failwith "TODO: param"
@@ -113,6 +122,13 @@ let query_rule extender_name (kind : kind) =
                 (List.filter_map targets ~f:(function
                    | `model (model, `field field) ->
                      Some (CaqtiHelper.Record.record_field ~loc ~model field)
+                   | `model (model, `star) ->
+                     Some
+                       (CaqtiHelper.Record.record_field
+                          ~loc
+                          ~model
+                          ~kind:Model
+                          (String.lowercase model))
                    | _ -> None))
             in
             (* [%p arg1] *)

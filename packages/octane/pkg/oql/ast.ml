@@ -143,14 +143,18 @@ module Expression = struct
     in
     match fields with
     | [] -> failwith "TODO: no fields"
-    | [ item ] -> of_field item
+    | [ field ] -> of_field field
     | [ table; field ] ->
       let table = Access.sval table in
-      let field = Access.sval field in
+      let field =
+        match to_assoc field with
+        | [ ("A_Star", _) ] -> `star
+        | _ -> `field (Access.sval field)
+      in
       begin
         match table.[0] with
-        | 'A' .. 'Z' -> `model (table, `field field)
-        | _ -> `column (None, Some table, `field field)
+        | 'A' .. 'Z' -> `model (table, field)
+        | _ -> `column (None, Some table, field)
       end
     | items -> Fmt.failwith "TODO: too many fields: %a" Yojson.Basic.pp (List.hd_exn items)
   ;;

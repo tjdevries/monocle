@@ -24,13 +24,24 @@ let make_params_field ~loc ?model name =
   Default.pexp_ident ~loc (Loc.make ~loc ident)
 ;;
 
+let make_model_record ~loc model =
+  let ident = Ldot (Longident.Lident model, "record") in
+  Default.pexp_ident ~loc (Loc.make ~loc ident)
+;;
+
 module Record = struct
+  type kind =
+    | Record
+    | Model
+
   type record_field =
     { model : string option
     ; name : string
     ; loc : location
+    ; kind : kind
     }
-  let record_field ~loc ?model name = { model; name; loc }
+
+  let record_field ~loc ?model ?(kind = Record) name = { model; name; loc; kind }
 
   let derive ~loc (fields : record_field list) =
     let body =
@@ -47,10 +58,16 @@ module Record = struct
         GenHelper.make_positional_fun ~loc name acc)
     in
     let product =
-      List.fold_right fields ~init:[%expr proj_end] ~f:(fun { name; model; _ } acc ->
+      List.fold_right fields ~init:[%expr proj_end] ~f:(fun { name; model; kind; _ } acc ->
         let ident = Loc.make ~loc (Lident name) in
         let access = Default.pexp_field ~loc [%expr record] ident in
-        let param = make_params_field ~loc ?model name in
+        let param =
+          match kind with
+          | Record -> make_params_field ~loc ?model name
+          | Model ->
+            let model = Option.value_exn model in
+            make_model_record ~loc model
+        in
         Default.pexp_apply
           ~loc
           [%expr proj]

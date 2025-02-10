@@ -1,4 +1,6 @@
 open Drive
+open Fambook.Models
+
 module SSR = Fambook.SSR
 
 let ( let* ) = Result.bind
@@ -8,23 +10,32 @@ let ( let= ) x f =
   | _ -> assert false
 ;;
 
+let%query (module PhotosForUserByID) =
+  "SELECT Photo.*
+    FROM Photo INNER JOIN Account ON Account.id = Photo.user_id
+    WHERE Account.id = $1::int"
+;;
+
 (* let items%route = "GET /items/user_id:UserID" *)
 module UserPhotos : Route.T = struct
-  type t = { user_id : string }
+  type t = { user_id : int }
 
-  let href t = Format.sprintf "/photos/%s" t.user_id
+  let href t = Format.sprintf "/photos/%d" t.user_id
 
   let parse (request : Request.t) =
     match String.split_on_char '/' request.target with
-    | [ ""; "photos"; user_id ] -> Some { user_id }
+    | [ ""; "photos"; user_id ] -> Some { user_id = int_of_string user_id }
     | _ -> None
   ;;
 
-  let handle ~ctx:_ (request : Request.t) (t : t) =
+  let handle ~(ctx : Drive.Route.context) (request : Request.t) (t : t) =
     match request.meth with
     | `GET ->
-      let photos = [] in
-      let page = SSR.Photos.page { user = t.user_id; photos } in
+      let= account = Account.read ctx.db t.user_id in
+      let account = Core.Option.value_exn account in
+      let= photos = PhotosForUserByID.query ctx.db t.user_id in
+      let photos = Core.List.map ~f:(fun p -> p.photo) photos in
+      let page = SSR.Photos.page { user = account; photos } in
       Response.of_string @@ JSX.render page
     | `POST ->
       let= message = Piaf.Body.to_string request.body in
@@ -51,8 +62,6 @@ end
 
 let routes : (module Route.T) list = [ (module UserPhotos) ]
 
-open Fambook.Models
-
 let%query (module UserInfoQuery) = "SELECT Account.id, Account.name, Account.email FROM Account"
 
 let setup pool =
@@ -61,8 +70,12 @@ let setup pool =
   let* _ = Account.Table.create pool in
   let* _ = Photo.Table.create pool in
   let* user = Account.insert pool ~name:"tjdevries" ~email:"tjdevries@example.com" in
-  let* _ = Photo.insert pool ~user_id:user.id ~url:"https://picsum.photos/200/300" in
-  let* _ = Photo.insert pool ~user_id:user.id ~url:"https://picsum.photos/300/300" in
+  let* _ =
+    Photo.insert pool ~user_id:user.id ~url:"https://picsum.photos/200/300" ~comment:"First Photo"
+  in
+  let* _ =
+    Photo.insert pool ~user_id:user.id ~url:"https://picsum.photos/300/300" ~comment:"Second Photo"
+  in
   let* _ = Account.insert pool ~name:"theprimeagen" ~email:"cantread@example.com" in
   Ok ()
 ;;

@@ -3,7 +3,7 @@ open Shared.Models
 open JSX
 
 type t =
-  { user : string
+  { user : Account.t
   ; photos : Photo.t list
   }
 
@@ -21,7 +21,7 @@ let page chats =
   let node =
     JSX.node
       "form"
-      [ "hx-post", `String (Format.sprintf "/chats/%s" chats.user)
+      [ "hx-post", `String (Format.sprintf "/chats/%d" chats.user.id)
       ; "hx-target", `String "#chats"
       ; "hx-swap", `String "innerHTML"
       ; "hx-on::after-request", `String "if(event.detail.successful) this.reset()"
@@ -29,7 +29,7 @@ let page chats =
       children
   in
   <div class_="Hello">
-    <h1>(string @@ "Hello World! Chat Messages for " ^ chats.user)</h1>
+    <h1>(string @@ "Hello World! Chat Messages for " ^ chats.user.name)</h1>
     <div>node</div>
     <div id="chats">(render_photos chats)</div>
   </div>
