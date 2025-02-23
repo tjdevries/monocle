@@ -34,8 +34,6 @@ let table_relation ~loc relation =
 ;;
 
 let module_param ~loc module_name param_name =
-  Format.eprintf "module_param: %s.%s\n" module_name param_name;
-  (* module_name.Params.param_name *)
   let ident = Ldot (Lident module_name, "Params") in
   let ident = Ldot (ident, param_name) in
   let ident = Loc.make ~loc ident in
@@ -158,7 +156,7 @@ and of_join_clause ~loc ~state (stanza : Expr.join_expression) =
 and to_select_string ~loc ~state (select : Ast.select_statement) =
   match select.from with
   | [ relation ] ->
-    let select_clause = of_expressions ~loc ~state select.targets in
+    let select_clause = of_targets ~loc ~state select.targets in
     let from_clause = of_from_clause ~loc ~state relation in
     let where_clause =
       match select.where with
@@ -176,6 +174,21 @@ and to_select_string ~loc ~state (select : Ast.select_statement) =
   | [] -> failwith "no relations: must be arch user"
   | _ -> failwith "too many relations: must be on windows 95"
 
+and of_targets ~loc ~state (targets : Ast.Target.t list) =
+  let targets =
+    List.map
+      ~f:(fun target ->
+        let expr = of_expression ~loc ~state target.expression in
+        match target.alias with
+        | Some alias ->
+          let alias = Ast_builder.Default.estring ~loc (" AS " ^ alias) in
+          [%expr [%e expr] ^ [%e alias]]
+        | None -> expr)
+      targets
+  in
+  let targets = Ast_builder.Default.elist ~loc targets in
+  [%expr Stdlib.String.concat ", " [%e targets]]
+
 and of_expressions ~loc ~state (expressions : Ast.Expression.t list) =
   let exprs = List.map ~f:(of_expression ~loc ~state) expressions in
   let exprs = Ast_builder.Default.elist ~loc exprs in
@@ -183,8 +196,8 @@ and of_expressions ~loc ~state (expressions : Ast.Expression.t list) =
 
 and of_expression ~loc ~state (target : Ast.Expression.t) =
   match target with
-  | `column (None, None, `star) -> [%expr "*"]
-  | `column (None, Some table, field) ->
+  | `column { namespace = None; table = None; field = `star } -> [%expr "*"]
+  | `column { namespace = None; table = Some table; field } ->
     let field =
       match field with
       | `star -> "*"

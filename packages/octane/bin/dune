@@ -8,5 +8,6 @@
 (executable
  (name oql_check)
  (public_name oql_check)
+ (modules oql_check)
  (package octane)
- (libraries cmdliner PGQuery yojson oql))
+ (libraries cmdliner PGQuery yojson bos oql))

@@ -1,0 +1,8 @@
+(library
+ (name ppx_router_dream)
+ (public_name ppx_router.dream)
+ (virtual_deps dream)
+ (optional)
+ (libraries ppx_router)
+ (ppx_runtime_libraries ppx_router.dream_runtime)
+ (kind ppx_deriver))

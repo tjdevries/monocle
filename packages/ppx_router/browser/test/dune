@@ -1,0 +1,19 @@
+; (library
+;  (name test)
+;  (modes melange)
+;  (libraries melange-fetch)
+;  (preprocess
+;   (pps melange.ppx melange-json.ppx ppx_router.browser)))
+;
+; (melange.emit
+;  (alias js)
+;  (target js)
+;  (modules)
+;  (libraries test)
+;  (module_systems commonjs))
+;
+; (cram
+;  (deps ./js/browser/test/test.js %{project_root}/dream/test/test.exe))
+;
+; (copy_files#
+;  (files ../../dream/test/routing.ml))

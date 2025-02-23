@@ -1,0 +1,17 @@
+(version 0.1.0)
+
+(build
+ (progn
+  (when
+   %{pkg-self:dev}
+   (run dune subst))
+  (run dune build -p %{pkg-self:name} -j %{jobs} @install)))
+
+(depends dune ocaml melange)
+
+(source
+ (fetch
+  (url
+   https://github.com/melange-community/melange-fetch/releases/download/0.1.0/melange-fetch-0.1.0.tbz)
+  (checksum
+   sha256=88fa27e183aa943496519f0ffaee7dbc98f102935285c71f17353ec9b344ff78)))

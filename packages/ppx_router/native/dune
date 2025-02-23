@@ -1,0 +1,14 @@
+(library
+ (name ppx_router)
+ (modules :standard \ ppx_router_test)
+ (wrapped false)
+ (public_name ppx_router)
+ (libraries uri ppxlib core containers melange-json-native.ppx)
+ (kind ppx_deriver)
+ (preprocess
+  (pps ppxlib.metaquot)))
+
+(executable
+ (name ppx_router_test)
+ (modules ppx_router_test)
+ (libraries ppx_router))

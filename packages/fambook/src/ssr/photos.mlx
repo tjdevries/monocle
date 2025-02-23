@@ -8,7 +8,7 @@ type t =
   }
 
 let render_photos (chats : t) =
-  let messages = Core.List.map ~f:(fun msg -> <div>(string msg.url)</div>) chats.photos in
+  let messages = Core.List.map ~f:(fun msg -> <div><img src=msg.url /></div>) chats.photos in
   list messages
 ;;
 
@@ -21,8 +21,8 @@ let page chats =
   let node =
     JSX.node
       "form"
-      [ "hx-post", `String (Format.sprintf "/chats/%d" chats.user.id)
-      ; "hx-target", `String "#chats"
+      [ "hx-post", `String (Format.sprintf "/photos/%d" chats.user.id)
+      ; "hx-target", `String "#photos"
       ; "hx-swap", `String "innerHTML"
       ; "hx-on::after-request", `String "if(event.detail.successful) this.reset()"
       ]
@@ -31,6 +31,6 @@ let page chats =
   <div class_="Hello">
     <h1>(string @@ "Hello World! Chat Messages for " ^ chats.user.name)</h1>
     <div>node</div>
-    <div id="chats">(render_photos chats)</div>
+    <div id="photos">(render_photos chats)</div>
   </div>
 ;;

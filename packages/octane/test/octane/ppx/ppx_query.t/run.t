@@ -564,7 +564,6 @@ Pretty print the file
 < language: ocaml
 
   $ pp_query ./lib/foreign.ml | ocamlformat --impl -
-  module_param: Account.id
   module Account = struct
     type t =
       { id : int [@primary_key { autoincrement = true }]
@@ -895,3 +894,191 @@ Pretty print the file
     let raw = "SELECT Account.* FROM Account"
   end [@warning "-32"]
 < language: ocaml
+
+  $ pp_query ./lib/as.ml | ocamlformat --impl -
+  module Account = struct
+    type t =
+      { id : int [@primary_key { autoincrement = true }]
+      ; name : string
+      ; age : int
+      }
+    [@@deriving table { name = "accounts" }]
+  
+    include struct
+      [@@@ocaml.warning "-60"]
+  
+      let _ = fun (_ : t) -> ()
+  
+      open Caqti_request.Infix
+      open Caqti_type.Std
+  
+      module Fields = struct
+        let id = "id"
+        let _ = id
+        let name = "name"
+        let _ = name
+        let age = "age"
+        let _ = age
+  
+        type id = int
+        type name = string
+        type age = int
+      end
+  
+      module Params = struct
+        let id = Caqti_type.Std.int
+        let _ = id
+        let name = Caqti_type.Std.string
+        let _ = name
+        let age = Caqti_type.Std.int
+        let _ = age
+  
+        type id = int
+        type name = string
+        type age = int
+      end
+  
+      module Table = struct
+        let drop = (unit ->. unit) @@ "DROP TABLE IF EXISTS accounts CASCADE"
+        let _ = drop
+        let drop db = Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.exec drop ()) db
+        let _ = drop
+  
+        let create =
+          (unit ->. unit)
+          @@ "CREATE TABLE accounts (id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY, name TEXT NOT NULL, age \
+              INTEGER NOT NULL)"
+        ;;
+  
+        let _ = create
+        let create db = Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.exec create ()) db
+        let _ = create
+      end
+  
+      let relation = "accounts"
+      let _ = relation
+  
+      let record =
+        let record id name age = { id; name; age } in
+        product record
+        @@ proj
+             Params.id
+             (fun record -> record.id)
+             (proj Params.name (fun record -> record.name) (proj Params.age (fun record -> record.age) proj_end))
+      ;;
+  
+      let _ = record
+  
+      let insert ~name ~age db =
+        let query =
+          (t2 Params.name Params.age ->! record) @@ "INSERT INTO accounts (name, age) VALUES (?, ?) RETURNING *"
+        in
+        Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.find query (name, age)) db
+      ;;
+  
+      let _ = insert
+  
+      let read db id =
+        let query = (Params.id ->? record) @@ "SELECT * FROM accounts WHERE accounts.id = $1" in
+        Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.find_opt query id) db
+      ;;
+  
+      let _ = read
+  
+      let update db t =
+        let query = (record ->. unit) @@ "UPDATE accounts SET name = $2, age = $3 WHERE accounts.id = $1" in
+        Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.exec query t) db
+      ;;
+  
+      let _ = update
+  
+      let delete db id =
+        let query = (Params.id ->. unit) @@ "DELETE FROM accounts WHERE accounts.id = $1" in
+        Caqti_eio.Pool.use (fun (module DB : Caqti_eio.CONNECTION) -> DB.exec query id) db
+      ;;
+  
+      let _ = delete
+    end [@@ocaml.doc "@inline"] [@@merlin.hide]
+  end
+  
+  module AccountNameQuery = struct
+    open Caqti_request.Infix
+    open Caqti_type.Std
+  
+    type t =
+      { account_id : Account.Fields.id
+      ; name : Account.Fields.name
+      }
+  
+    let record =
+      let record account_id name = { account_id; name } in
+      product record
+      @@ proj
+           Account.Params.id
+           (fun record -> record.account_id)
+           (proj Account.Params.name (fun record -> record.name) proj_end)
+    ;;
+  
+    let query db =
+      let open Caqti_request.Infix in
+      let open Caqti_type.Std in
+      let query =
+        (unit ->* record)
+        @@ Stdlib.Format.sprintf
+             "SELECT %s FROM %s %s"
+             (Stdlib.String.concat
+                ", "
+                [ Stdlib.Format.sprintf "%s.%s" Account.relation "id" ^ " AS account_id"
+                ; Stdlib.Format.sprintf "%s.%s" Account.relation "name"
+                ])
+             (Core.String.concat ~sep:", " [ Account.relation ])
+             ""
+      in
+      let params = () in
+      Octane.Database.collect db query params
+    ;;
+  
+    let raw = "SELECT Account.id as account_id, Account.name FROM Account"
+  end [@warning "-32"]
+  
+  module AccountNameQuery = struct
+    open Caqti_request.Infix
+    open Caqti_type.Std
+  
+    type t =
+      { my_account : Account.t
+      ; name : Account.Fields.name
+      }
+  
+    let record =
+      let record my_account name = { my_account; name } in
+      product record
+      @@ proj
+           Account.record
+           (fun record -> record.my_account)
+           (proj Account.Params.name (fun record -> record.name) proj_end)
+    ;;
+  
+    let query db =
+      let open Caqti_request.Infix in
+      let open Caqti_type.Std in
+      let query =
+        (unit ->* record)
+        @@ Stdlib.Format.sprintf
+             "SELECT %s FROM %s %s"
+             (Stdlib.String.concat
+                ", "
+                [ Stdlib.Format.sprintf "%s.%s" Account.relation "*" ^ " AS my_account"
+                ; Stdlib.Format.sprintf "%s.%s" Account.relation "name"
+                ])
+             (Core.String.concat ~sep:", " [ Account.relation ])
+             ""
+      in
+      let params = () in
+      Octane.Database.collect db query params
+    ;;
+  
+    let raw = "SELECT Account.* as my_account, Account.name FROM Account"
+  end [@warning "-32"]
+< language: ocaml
+

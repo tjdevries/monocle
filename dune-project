@@ -156,13 +156,13 @@
   httpun-eio
   piaf
   ;; Dev Tools?...
-  ocaml-index
-  ;; Picos? Not sure if we'll use this...
-  ; picos
-  ; picos_mux
-  ; picos_std
-  ;;
-  saturn))
+  ocaml-index))
+
+(package
+ (name ppx_drive)
+ (synopsis "PPX Drive")
+ (description "%context, others for Drive")
+ (depends ocaml dune ppxlib fmt core))
 
 ;; vite-plugin-ocaml
 
@@ -186,3 +186,26 @@
   ppx_deriving
   ocaml-protoc
   (alcotest :with-test)))
+
+;; router
+
+(package
+ (name ppx_router)
+ (synopsis "Derive typesafe router from type declarations")
+ ;; WHAT IS DEP OPT?
+ ; (depopts dream http cohttp cohttp-lwt cohttp-lwt-unix)
+ (depends
+  ocaml
+  dune
+  ;; todo: remove soon, just move to core for everything
+  dream
+  ;; remove soon, just move to core for everything
+  containers
+  core
+  ppxlib
+  routes
+  melange
+  melange-fetch
+  melange-json
+  melange-json-native
+  uri))

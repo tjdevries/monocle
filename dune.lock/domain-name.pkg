@@ -1,4 +1,4 @@
-(version 0.4.0)
+(version 0.4.1)
 
 (build
  (progn
@@ -12,6 +12,6 @@
 (source
  (fetch
   (url
-   https://github.com/hannesm/domain-name/releases/download/v0.4.0/domain-name-0.4.0.tbz)
+   https://github.com/hannesm/domain-name/releases/download/v0.4.1/domain-name-0.4.1.tbz)
   (checksum
-   sha256=a5c06e22845895201973e812fe3019274d1db81c0a7873da6c8007c4ad2108c5)))
+   sha256=1dba32f35a7cd5cc8187d21e2cc21a0b667a645447a0eefe57afe3ca25bc4566)))

@@ -27,10 +27,10 @@ let get_contents = function
 ;;
 
 let do_parse files =
-  let f exit_status filename =
+  let f _ filename =
     let result = get_contents filename |> Oql.Run.parse in
     match result with
-    | Ok parsed ->
+    | Ok (_, parsed) ->
       List.iter (fun stmt -> Format.printf "%s@." (Oql.Ast.show_statement stmt)) parsed;
       1
     | _ -> failwith "cannot parse"
@@ -72,7 +72,7 @@ let () =
   Format.printf "Executing cmd:\n";
   match Cmd.eval_value cmd with
   | Ok (`Ok files) ->
-    List.iter (fun file -> do_parse files |> ignore) files;
+    let _ = do_parse files in
     exit 0
   | Error `Term -> exit 1
   | Error `Parse -> exit 124

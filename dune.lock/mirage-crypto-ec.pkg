@@ -1,4 +1,4 @@
-(version 1.1.0)
+(version 1.2.0)
 
 (build
  (progn
@@ -12,6 +12,6 @@
 (source
  (fetch
   (url
-   https://github.com/mirage/mirage-crypto/releases/download/v1.1.0/mirage-crypto-1.1.0.tbz)
+   https://github.com/mirage/mirage-crypto/releases/download/v1.2.0/mirage-crypto-1.2.0.tbz)
   (checksum
-   sha256=c7189767a7ead54923cab020f39cd0c34af7d4b048776939d94f028abf536353)))
+   sha256=09542bcd96c1d368ff9ba8853105f4c1781d8c94c2400df9f3ac0610ee07e67e)))

@@ -29,11 +29,11 @@ module Photo = struct
   [@@deriving table { name = "photos" }]
 end
 
-(* module Album = struct *)
-(*   type t = *)
-(*     { id : int [@primary_key { autoincrement = true }] *)
-(*     ; user_id : Account.Fields.id [@references { on_cascade = `delete }] *)
-(*     ; name : string *)
-(*     } *)
-(*   [@@deriving table { name = "albums" }] *)
-(* end *)
+module Album = struct
+  type t =
+    { id : int [@primary_key { autoincrement = true }]
+    ; user_id : Account.Fields.id [@references { on_cascade = `delete }]
+    ; name : string
+    }
+  [@@deriving table { name = "albums" }]
+end

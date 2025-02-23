@@ -1,0 +1,8 @@
+(executable
+ (public_name pp_drive_context)
+ (package ppx_drive)
+ (name pp_drive_context)
+ (modules pp_drive_context)
+ (libraries core fmt bos ppx_drive)
+ (preprocess
+  (pps ppx_drive)))

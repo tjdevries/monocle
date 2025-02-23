@@ -70,6 +70,11 @@ module Expression = struct
     [ `string of string
     | `int of int
     ]
+  and column_target =
+    { namespace : string option
+    ; table : string option
+    ; field : field
+    }
   and field =
     [ `star
     | `field of string
@@ -78,7 +83,7 @@ module Expression = struct
     [ `param of int
     | `typed_param of PGTypes.t * int
     ]
-  and column = [ `column of string option * string option * field ]
+  and column = [ `column of column_target ]
   and table = [ `table of string ]
   and join_kind =
     [ `inner
@@ -137,7 +142,7 @@ module Expression = struct
   let of_fields fields : t =
     let of_field item : t =
       match to_assoc item with
-      | [ ("A_Star", _) ] -> `column (None, None, `star)
+      | [ ("A_Star", _) ] -> `column { namespace = None; table = None; field = `star }
       | [ ("A_Const", constant) ] -> of_constant constant
       | _ -> failwith "TODO: field"
     in
@@ -154,17 +159,25 @@ module Expression = struct
       begin
         match table.[0] with
         | 'A' .. 'Z' -> `model (table, field)
-        | _ -> `column (None, Some table, field)
+        | _ -> `column { namespace = None; table = Some table; field }
       end
     | items -> Fmt.failwith "TODO: too many fields: %a" Yojson.Basic.pp (List.hd_exn items)
   ;;
+end
+
+module Target = struct
+  type t =
+    { alias : string option
+    ; expression : Expression.t
+    }
+  [@@deriving show { with_path = false }]
 end
 
 type t = statement list
 
 and statement = Select of select_statement
 and select_statement =
-  { targets : Expression.t list
+  { targets : Target.t list
   ; from : Expression.selectable list
   ; op : string
   ; where : Expression.t option
@@ -214,8 +227,16 @@ and map_target_list data =
   | "ResTarget" -> map_res_target value
   | _ -> failwith "cannot parse"
 
+(* select 5 as five *)
+
 and map_res_target data =
-  let targets =
+  let alias =
+    match data |> member "name" with
+    | `String name -> Some name
+    | `Null -> None
+    | _ -> failwith "TODO: unhandled name variant"
+  in
+  let expression =
     data
     |> member "val"
     |> to_assoc
@@ -226,7 +247,7 @@ and map_res_target data =
       | _ -> failwith "unknown res_target")
     |> List.hd_exn
   in
-  targets
+  { alias; expression }
 
 and map_column_ref data = data |> member "fields" |> to_list |> Expression.of_fields
 
@@ -352,9 +373,12 @@ let transform s =
 ;;
 
 let parse (transformed : transformed) result =
+  (* Fmt.epr "parsed: %s@." result; *)
   let json = Yojson.Basic.from_string result in
+  (* Fmt.epr "parsed: %a@." Yojson.Basic.pp json; *)
   let stmts = statements json in
   let stmts = Stdlib.List.flatten stmts in
+  (* List.iter stmts ~f:(Fmt.epr "stmts: %a\n%!" pp_statement); *)
   Ok (transformed, stmts)
 ;;
 

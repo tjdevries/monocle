@@ -66,7 +66,9 @@ let of_ast (transformed : Ast.transformed) (ast : Ast.statement) =
   let acc = [] in
   match ast with
   | Select { targets; where; _ } ->
-    let acc = List.fold_left ~init:acc ~f:(fun acc expr -> search expr acc) targets in
+    let acc =
+      List.fold_left ~init:acc ~f:(fun acc target -> search target.expression acc) targets
+    in
     let acc = Option.fold ~init:acc ~f:(fun acc where -> search where acc) where in
     List.sort acc ~compare:(fun left right -> Int.compare left.id right.id)
 ;;

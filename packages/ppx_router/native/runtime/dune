@@ -1,0 +1,4 @@
+(library
+ (name RouterRuntimeLib)
+ (public_name ppx_router.runtime_lib)
+ (libraries routes uri yojson))

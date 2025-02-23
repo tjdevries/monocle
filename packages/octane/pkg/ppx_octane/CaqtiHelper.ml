@@ -37,29 +37,32 @@ module Record = struct
   type record_field =
     { model : string option
     ; name : string
+    ; alias : string option
     ; loc : location
     ; kind : kind
     }
 
-  let record_field ~loc ?model ?(kind = Record) name = { model; name; loc; kind }
+  let record_field ~loc ?model ?(kind = Record) alias name = { model; name; loc; kind; alias }
 
   let derive ~loc (fields : record_field list) =
     let body =
       Default.pexp_record
         ~loc
-        (List.map fields ~f:(fun { name; _ } ->
+        (List.map fields ~f:(fun { name; alias; _ } ->
+           let name = Option.value alias ~default:name in
            let ident = Loc.make ~loc (Lident name) in
            let expr = Default.pexp_ident ~loc ident in
            ident, expr))
         None
     in
     let record =
-      List.fold_right fields ~init:body ~f:(fun { name; _ } acc ->
-        GenHelper.make_positional_fun ~loc name acc)
+      List.fold_right fields ~init:body ~f:(fun { name; alias; _ } acc ->
+        let param = Option.value alias ~default:name in
+        GenHelper.make_positional_fun ~loc param acc)
     in
     let product =
-      List.fold_right fields ~init:[%expr proj_end] ~f:(fun { name; model; kind; _ } acc ->
-        let ident = Loc.make ~loc (Lident name) in
+      List.fold_right fields ~init:[%expr proj_end] ~f:(fun { name; alias; model; kind; _ } acc ->
+        let ident = Loc.make ~loc (Lident (Option.value alias ~default:name)) in
         let access = Default.pexp_field ~loc [%expr record] ident in
         let param =
           match kind with

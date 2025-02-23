@@ -1,0 +1,32 @@
+(version 2.0.0)
+
+(build
+ (progn
+  (when
+   %{pkg-self:dev}
+   (run dune subst))
+  (run
+   dune
+   build
+   -p
+   %{pkg-self:name}
+   -j
+   %{jobs}
+   --promote-install-files=false
+   @install)
+  (run
+   dune
+   install
+   -p
+   %{pkg-self:name}
+   --create-install-files
+   %{pkg-self:name})))
+
+(depends dune ocaml)
+
+(source
+ (fetch
+  (url
+   https://github.com/anuragsoni/routes/releases/download/2.0.0/routes-2.0.0.tbz)
+  (checksum
+   sha256=3b629d698c2b00e504c13b4cd783548063719dcf01580c9c3f5104b81eb0d688)))

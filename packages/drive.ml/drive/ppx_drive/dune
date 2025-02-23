@@ -1,0 +1,9 @@
+(library
+ (name ppx_drive)
+ (kind ppx_deriver)
+ (package ppx_drive)
+ (flags
+  (:standard -w -27))
+ (libraries ppxlib core fmt ppx_deriving.api)
+ (preprocess
+  (pps ppx_deriving.std ppx_string ppxlib.metaquot)))

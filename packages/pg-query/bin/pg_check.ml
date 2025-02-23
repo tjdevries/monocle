@@ -32,9 +32,7 @@ let do_parse files =
     | Ok parse_tree ->
       print_endline parse_tree;
       exit_status
-    | Error message ->
-      print_endline message;
-      1
+    | Error _ -> 1
   in
   let status = files |> List.fold_left f 0 in
   exit status

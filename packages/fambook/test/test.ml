@@ -125,6 +125,7 @@ let main env sw =
         ] )
     ; Test_transform.cases
     ; Test_model.cases db
+    ; Test_as.cases db
     ]
 ;;
 

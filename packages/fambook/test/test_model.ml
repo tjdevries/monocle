@@ -14,7 +14,7 @@ let returns_empty db () =
 
 let returns_single_account db () =
   let> () = recreate_database db in
-  let> account = Account.insert db ~name:"user1" ~email:"user1@example.com" in
+  let> _ = Account.insert db ~name:"user1" ~email:"user1@example.com" in
   let> result = AccountStar.query db in
   Alcotest.(check int) "single item in list" 1 (List.length result)
 ;;
@@ -27,7 +27,7 @@ let%query (module PhotoAccountJoin) =
 let returns_single_photo db () =
   let> () = recreate_database db in
   let> user = Account.insert db ~name:"user1" ~email:"user1@example.com" in
-  let> photo = Photo.insert db ~user_id:user.id ~url:"phot-url" ~comment:"Hello world" in
+  let> _ = Photo.insert db ~user_id:user.id ~url:"phot-url" ~comment:"Hello world" in
   let> result = PhotoAccountJoin.query db in
   Alcotest.(check int) "single item in list" 1 (List.length result);
   let item = List.hd result in
@@ -37,9 +37,9 @@ let returns_single_photo db () =
 let returns_multiple_photos db () =
   let> () = recreate_database db in
   let> user = Account.insert db ~name:"user1" ~email:"user1@example.com" in
-  let> photo = Photo.insert db ~user_id:user.id ~url:"photo1" ~comment:"Hello world" in
-  let> photo = Photo.insert db ~user_id:user.id ~url:"photo2" ~comment:"Hello world" in
-  let> photo = Photo.insert db ~user_id:user.id ~url:"photo3" ~comment:"Hello world" in
+  let> _ = Photo.insert db ~user_id:user.id ~url:"photo1" ~comment:"Hello world" in
+  let> _ = Photo.insert db ~user_id:user.id ~url:"photo2" ~comment:"Hello world" in
+  let> _ = Photo.insert db ~user_id:user.id ~url:"photo3" ~comment:"Hello world" in
   let> result = PhotoAccountJoin.query db in
   Alcotest.(check int) "three items in list" 3 (List.length result);
   let item = List.hd result in

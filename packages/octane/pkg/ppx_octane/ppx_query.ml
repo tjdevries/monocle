@@ -65,29 +65,28 @@ let query_rule extender_name (kind : kind) =
       | [ Oql.Ast.Select { targets; from; _ } ] ->
         let fields =
           List.filter_map
-            ~f:(function
+            ~f:(fun target ->
+              match target.expression with
               | `column col -> assert false
               | `model (model, `field field) ->
-                let open Ast_builder.Default in
                 (* TODO: get the right location? *)
                 (* let m = ModelField.model_name model_field in *)
                 (* let f_start, f_end, f = model_field.field in *)
                 (* let f_loc = Location.{ loc_start = f_start; loc_end = f_end; loc_ghost = false } in *)
                 (* let f_loc = add_location query_loc f_loc 1 in *)
+                let open Ast_builder.Default in
+                let name = Option.value target.alias ~default:field in
                 let ident = Ldot (Lident model, "Fields") in
                 let ident = Ldot (ident, field) in
                 let type_ : core_type = ptyp_constr ~loc (Loc.make ~loc ident) [] in
-                Some (label_declaration ~loc ~name:(Loc.make ~loc field) ~mutable_:Immutable ~type_)
+                Some (label_declaration ~loc ~name:(Loc.make ~loc name) ~mutable_:Immutable ~type_)
               | `model (model, `star) ->
                 let open Ast_builder.Default in
+                let name = Option.value target.alias ~default:model in
+                let name = Loc.make ~loc (String.lowercase name) in
                 let ident = Ldot (Lident model, "t") in
                 let type_ : core_type = ptyp_constr ~loc (Loc.make ~loc ident) [] in
-                Some
-                  (label_declaration
-                     ~loc
-                     ~name:(Loc.make ~loc (String.lowercase model))
-                     ~mutable_:Immutable
-                     ~type_)
+                Some (label_declaration ~loc ~name ~mutable_:Immutable ~type_)
               | `binary _ -> failwith "TODO: binary"
               | `join _ -> failwith "TODO: join"
               | `param _ -> failwith "TODO: param"
@@ -119,15 +118,17 @@ let query_rule extender_name (kind : kind) =
             let record =
               CaqtiHelper.Record.derive
                 ~loc
-                (List.filter_map targets ~f:(function
+                (List.filter_map targets ~f:(fun target ->
+                   match target.expression with
                    | `model (model, `field field) ->
-                     Some (CaqtiHelper.Record.record_field ~loc ~model field)
+                     Some (CaqtiHelper.Record.record_field ~loc ~model target.alias field)
                    | `model (model, `star) ->
                      Some
                        (CaqtiHelper.Record.record_field
                           ~loc
                           ~model
                           ~kind:Model
+                          target.alias
                           (String.lowercase model))
                    | _ -> None))
             in

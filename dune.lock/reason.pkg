@@ -1,4 +1,4 @@
-(version 3.14.0)
+(version 3.15.0)
 
 (build
  (progn
@@ -22,6 +22,6 @@
 (source
  (fetch
   (url
-   https://github.com/reasonml/reason/releases/download/3.14.0/reason-3.14.0.tbz)
+   https://github.com/reasonml/reason/releases/download/3.15.0/reason-3.15.0.tbz)
   (checksum
-   sha256=1d09ba24a0594745ab6b38b4d5f81ead8565b73cb69ad46af1c2c26f8d324f00)))
+   sha256=ec3d2025f4391f0d2b88d2053e627a85aa1addd9c51320e9e72c690e05fb66a6)))

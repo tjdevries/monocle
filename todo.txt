@@ -1,1 +1,76 @@
+# TODO
+
+- handle `select 5` -- right now we don't have a field to put that in (maybe should generate some constants or something)
 - add upsert to octane
+- remove rio dep from serde
+  - Seems to only be used for an error type, which is weird.
+
+
+# Thoughts
+
+- typesafe database
+- typesafe routes
+- typesafe server<->client communication
+- type sharing for frontend (also ocaml, via melange)
+- also, needs good names for things (Ppx_deriving_router_runtime.Primitives.t is not good for newcomers)
+- also, needs to just have one way of doing things, builtin and easy
+- also, needs ssr and ability for rsc
+
+
+
+Router:
+
+- i like the idea of a route just being a `Route.t/T` at its essence and you'd be able to use it for e.g. `<Link to=(Route.Photos 1) ... />` or such, then whatever matching e.g. `photos/:id` you could just match to a route
+
+define the routes -> module/object/something
+- can use that to get routes that are type safe
+
+
+Route.get(..., ...)
+- OK... but how do i know i have a valid route?
+  - that's the fun part in go. you can't do this and no one seems to care... until prod is down
+
+/photo/:id
+/user/:id
+
+/usr/37 -> error
+/user/37 -> ok
+
+<form action=(User.post ~id:37) method="post">
+  <input type="text" name="name" value="tjdevries" />
+  <input type="submit" />
+</form>
+
+
+/photo/:photo_id
+Routes.Photo.get ~photo_id:37
+
+
+user.mlx
+photo.mlx
+dashboard.mlx
+-> Router.Photo.get ~photo_id:37
+
+----
+
+router.mlx
+<- user
+<- photo
+<- dashboard
+
+
+
+Router.ml -> VerifiedRoute.ml
+
+
+
+Need to have a router that runs one way on backend, one way on frontend.
+- uses different apis, on frontend you can do regular JSON.stringify, on backend you can do regular JSON.parse
+	... 
+
+
+
+
+
+
+

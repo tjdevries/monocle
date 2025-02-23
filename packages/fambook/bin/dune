@@ -12,4 +12,4 @@
   drive
   fambook)
  (preprocess
-  (pps ppx_octane)))
+  (pps ppx_octane ppx_drive)))

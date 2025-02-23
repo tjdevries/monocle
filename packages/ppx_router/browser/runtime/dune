@@ -1,0 +1,12 @@
+(library
+ (name ppx_deriving_router_browser_runtime)
+ (wrapped false)
+ (modes melange)
+ (public_name ppx_router.browser_runtime)
+ (libraries melange-fetch))
+
+(copy_files#
+ (files ../../native/runtime/ppx_deriving_router_witness.ml*))
+
+(copy_files#
+ (files ../../native/runtime/ppx_deriving_router_primitives.ml*))

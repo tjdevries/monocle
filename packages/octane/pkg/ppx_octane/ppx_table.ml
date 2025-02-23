@@ -314,7 +314,7 @@ let generate_serializers ~ctxt type_declarations =
 let generate_caqti_product ~loc (fields : TableField.t list) =
   CaqtiHelper.Record.derive
     ~loc
-    (List.map fields ~f:(fun { name; _ } -> CaqtiHelper.Record.record_field ~loc name.txt))
+    (List.map fields ~f:(fun { name; _ } -> CaqtiHelper.Record.record_field ~loc None name.txt))
 ;;
 
 let generate_table_module ~loc name (fields : TableField.t list) =

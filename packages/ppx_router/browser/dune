@@ -1,0 +1,18 @@
+(library
+ (name ppx_router_browser)
+ (modules :standard \ ppx_router_test)
+ (wrapped false)
+ (public_name ppx_router.browser)
+ (libraries uri ppxlib containers)
+ (kind ppx_deriver)
+ (ppx_runtime_libraries ppx_router.browser_runtime)
+ (preprocess
+  (pps ppxlib.metaquot)))
+
+(executable
+ (name ppx_router_test)
+ (modules ppx_router_test)
+ (libraries ppx_router_browser))
+
+(copy_files#
+ (files ../native/ppx_router_common.ml))
